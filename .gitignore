@@ -1,7 +1,16 @@
 # --- Original game data: never commit (user-supplied only) ---
 # (extend this list as research confirms more RAGE file types)
 *.resources
+gameresources*.patch
+*.streamed
 *.pages
+*.pageLines
+*.vmtr
+*.bimage
+*.bswf
+*.bcm
+*.bvtr
+*.bik
 *.tga
 *.wav
 *.ogg

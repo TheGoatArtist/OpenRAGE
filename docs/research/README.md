@@ -28,10 +28,12 @@ research/
 ## Open questions
 ```
 
+## Notes so far
+
+- [install-inventory.md](install-inventory.md): layout, file types and sizes of a Steam install with DLC
+
 ## First targets
 
-1. **Game install inventory.** List the folders and file types in a stock install with the
-   DLC, plus their sizes. No game files leave your machine. Just record the names, counts and
-   sizes.
+1. ~~**Game install inventory.**~~ Done. See above.
 2. **Archive format.** How the game packages its assets.
 3. **Megatexture page data.** How the virtual texture is stored on disk.
