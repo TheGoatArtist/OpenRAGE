@@ -1,0 +1,40 @@
+# --- Original game data: never commit (user-supplied only) ---
+# (extend this list as research confirms more RAGE file types)
+*.resources
+*.pages
+*.tga
+*.wav
+*.ogg
+*.bik
+*.exe
+*.dll
+base/
+gamedata/
+
+# Local scratch space for extracted files during research
+extracted/
+dumps/
+
+# Ghidra / IDA project files (personal, often contain game binaries)
+*.gpr
+*.rep/
+*.idb
+*.i64
+
+# --- Build output ---
+build/
+out/
+bin/
+obj/
+*.pdb
+*.obj
+*.lib
+*.ilk
+
+# --- Editors / OS ---
+.vs/
+.vscode/
+.idea/
+*.user
+Thumbs.db
+.DS_Store
