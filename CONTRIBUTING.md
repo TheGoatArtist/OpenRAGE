@@ -2,6 +2,8 @@
 
 Thanks for wanting to help preserve RAGE. You don't have to be a programmer to contribute.
 
+New here? Start with [docs/getting-started.md](docs/getting-started.md) to set up Windows or Linux.
+
 ## Ways to help
 
 - **Research.** Document how the game's files and systems work. See [docs/research/](docs/research/).

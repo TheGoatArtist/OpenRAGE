@@ -47,7 +47,8 @@ of the game. See [docs/legal.md](docs/legal.md).
 
 OpenRAGE is the flagship project of a wider **RAGE fan community**. Everyone who loves the
 games is welcome, whether or not they write code. See [CONTRIBUTING.md](CONTRIBUTING.md) and
-[docs/community.md](docs/community.md).
+[docs/community.md](docs/community.md). To set up your machine (Windows or Linux), see
+[docs/getting-started.md](docs/getting-started.md).
 
 ## Disclaimer
 

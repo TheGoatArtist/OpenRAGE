@@ -5,7 +5,7 @@
   `Version: 1.1700.354669`.
 - Files examined: names and sizes only, from a stock Steam install with all DLC. Small plain-text
   config and log files were read. No game data was copied.
-- Tools used: [tools/inventory.ps1](../../tools/inventory.ps1) plus manual PowerShell.
+- Tools used: `tools/inventory.ps1` (now replaced by [tools/inventory.py](../../tools/inventory.py)) plus manual PowerShell.
 - Confidence: **verified** for layout and sizes; **guess** wherever a file's *purpose* is marked as one.
 - Date: 2026-10-28
 

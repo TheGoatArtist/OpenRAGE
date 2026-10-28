@@ -1,0 +1,17 @@
+# Store text with LF in the repository; check out with each platform's native line endings.
+* text=auto
+
+# Files that must keep one line ending everywhere
+*.sh   text eol=lf
+*.py   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary files: never touch line endings or try to diff them
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary
+*.zip  binary
+*.7z   binary
