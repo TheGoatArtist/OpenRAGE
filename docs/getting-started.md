@@ -46,6 +46,15 @@ On Linux, use `python3` if `python` isn't found. The output is Markdown. Compare
 [research/install-inventory.md](research/install-inventory.md) and note any differences.
 Proton and native Windows installs should match exactly.
 
+To see what's inside one of the game's archives (names, types and sizes only, nothing extracted):
+
+```bash
+python tools/resources.py "/path/to/RAGE/base/gameresources_sp_01.patch"
+```
+
+Add `--check` to confirm every entry unpacks to its recorded size. The results should match the
+table in [research/formats/resources-archive.md](research/formats/resources-archive.md#check-results).
+
 ## 5. Save and share changes
 
 ```bash

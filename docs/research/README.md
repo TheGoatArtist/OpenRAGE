@@ -31,9 +31,13 @@ research/
 ## Notes so far
 
 - [install-inventory.md](install-inventory.md): layout, file types and sizes of a Steam install with DLC
+- [toolkit-inventory.md](toolkit-inventory.md): the RAGE Tool Kit's source assets, formats, docs and mod builds
+- [formats/resources-archive.md](formats/resources-archive.md): the `.resources` / `.patch` archive format
 
 ## First targets
 
 1. ~~**Game install inventory.**~~ Done. See above.
-2. **Archive format.** How the game packages its assets.
+2. **Archive format.** Mostly done for `.resources` / `.patch`; see
+   [formats/resources-archive.md](formats/resources-archive.md). `streamed.resources` and
+   `.streamed` files are still unknown.
 3. **Megatexture page data.** How the virtual texture is stored on disk.

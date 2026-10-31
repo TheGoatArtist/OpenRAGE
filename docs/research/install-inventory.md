@@ -90,14 +90,16 @@ against later.
 2. **Tiny generated files for first hex-editor practice.** The Tool Kit leftovers include
    `.bimage` files of 70 and 78 bytes (`constantcolor_1_1_1_1_.bimage`, `nofalloff.bimage`).
    They're small enough to decode by hand.
-3. **Install the RAGE Tool Kit again.** Its engine and editor build prints detailed logs and
-   creates intermediate files, which makes it the best source of clues.
+3. ~~**Install the RAGE Tool Kit again.**~~ Done. See [toolkit-inventory.md](toolkit-inventory.md).
 4. **Generated shaders.** The Tool Kit cache had 166 shader pairs (`.cg` + `.glsl`), which
    suggests shaders are written in Cg and converted to GLSL.
 
 ## Open questions
 
 - What is inside a `.pageLines` file, and why do the DLC folders not have them?
-- How do `.patch` files override `.resources`?
-- How are `.resources` entries named and found (hashing)?
+- ~~How do `.patch` files override `.resources`?~~ Most likely by entry name. See
+  [formats/resources-archive.md](formats/resources-archive.md).
+- How are `.resources` entries found at runtime? Each entry stores readable names (see
+  [formats/resources-archive.md](formats/resources-archive.md)), so what `hashSeed` is for is
+  still open.
 - What exactly does `dlc1` add?
