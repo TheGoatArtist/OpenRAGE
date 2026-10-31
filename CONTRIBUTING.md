@@ -18,11 +18,15 @@ New here? Start with [docs/getting-started.md](docs/getting-started.md) to set u
 1. **Never commit game files.** Never add files extracted or copied from RAGE or its DLC: no
    archives, textures, models, sounds or executables. Describe formats in your own words and
    write tools that read the files from the user's own install.
-2. **Don't paste decompiled code.** Notes on *how* something works are welcome. Copying
+2. **Never commit RAGE Tool Kit content or anything it builds.** That covers its source
+   assets (`.map`, `.md6mesh`, `.decl` and so on) and mod packages or test archives you build
+   with it, even tiny ones. Its terms only allow sharing with people who own RAGE. See
+   [docs/legal.md](docs/legal.md#rage-tool-kit-terms).
+3. **Don't paste decompiled code.** Notes on *how* something works are welcome. Copying
    decompiled or disassembled output into the repository is not. See [docs/legal.md](docs/legal.md).
-3. **Show your evidence.** Research notes should say which game version, which file and how
+4. **Show your evidence.** Research notes should say which game version, which file and how
    you found it, so others can check the work.
-4. **Respect the original.** Changes should serve RAGE's identity, not replace it.
+5. **Respect the original.** Changes should serve RAGE's identity, not replace it.
 
 ## Workflow
 

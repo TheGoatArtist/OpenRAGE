@@ -20,6 +20,31 @@ gameresources*.patch
 base/
 gamedata/
 
+# --- RAGE Tool Kit content and build output: never commit (see docs/legal.md) ---
+*.md6mesh
+*.md6anim
+*.md6def
+*.pk5
+*.proc
+*.bmodel
+*.msadpcm
+*.land
+*.land[0-9]*
+*.vtr
+*.vd5
+*.lang
+*.m2
+*.lwo
+*.fla
+*.swf
+*.aweb
+*.sndshd
+*.tdef
+*.forbuild
+*.xma
+virtualtextures/
+mods/
+
 # Local scratch space for extracted files during research
 extracted/
 dumps/
@@ -39,6 +64,8 @@ obj/
 *.obj
 *.lib
 *.ilk
+__pycache__/
+*.pyc
 
 # --- Editors / OS ---
 .vs/
