@@ -41,7 +41,7 @@ experience" goal.
 | Extension | Count | Size | Purpose (confidence) |
 | --- | ---: | ---: | --- |
 | `.pages` | 87 | 19.3 GB | Megatexture page data, one per map/area (verified by name and by the engine log below) |
-| `.pageLines` | 69 | 48 MB | Small companion to each `.pages` file in `virtualtextures` and `mp/virtualtextures`. DLC folders don't have them. Purpose unknown. |
+| `.pageLines` | 69 | 48 MB | Small companion to each `.pages` file in `virtualtextures` and `mp/virtualtextures`. DLC folders don't have them. A disk-block index (verified, see [formats/megatexture-pages.md](formats/megatexture-pages.md)) |
 | `.resources` | 6 | 3.5 GB | Asset archives. Each tree has `gameresources` + `streamed` (verified by name) |
 | `.patch` | 2 | 106 MB | `gameresources_sp_01.patch` / `gameresources_mp_01.patch`. Probably archives that override the base `.resources` (guess) |
 | `.streamed` | 3 | 331 MB | `english.streamed`. Probably localized voice/audio (guess) |
@@ -96,7 +96,9 @@ against later.
 
 ## Open questions
 
-- What is inside a `.pageLines` file, and why do the DLC folders not have them?
+- ~~What is inside a `.pageLines` file, and why do the DLC folders not have them?~~ A 64 KB
+  disk-block index that can be rebuilt from the `.pages` file. See
+  [formats/megatexture-pages.md](formats/megatexture-pages.md).
 - ~~How do `.patch` files override `.resources`?~~ Most likely by entry name. See
   [formats/resources-archive.md](formats/resources-archive.md).
 - How are `.resources` entries found at runtime? Each entry stores readable names (see

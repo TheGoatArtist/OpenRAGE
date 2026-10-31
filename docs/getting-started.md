@@ -55,6 +55,16 @@ python tools/resources.py "/path/to/RAGE/base/gameresources_sp_01.patch"
 Add `--check` to confirm every entry unpacks to its recorded size. The results should match the
 table in [research/formats/resources-archive.md](research/formats/resources-archive.md#check-results).
 
+To see how a megatexture is laid out (page positions and sizes only, no image data):
+
+```bash
+python tools/pages.py "/path/to/RAGE/virtualtextures/scientist.pages"
+```
+
+Give it the whole RAGE folder with `--check` to test every megatexture. It reads page headers
+spread across about 19 GB, so expect it to take a long time on a hard drive. Compare the results
+with [research/formats/megatexture-pages.md](research/formats/megatexture-pages.md#check-results).
+
 ## 5. Save and share changes
 
 ```bash
