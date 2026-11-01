@@ -7,6 +7,23 @@ of it never got the attention they deserved, especially modding and multiplayer.
 brings the preservation-and-modernization spirit of openQ4 to RAGE. The aim is to **preserve
 and improve the game, not remake it**.
 
+## The model: faithful by default, enhancements optional
+
+The closest example of what OpenRAGE aims to be is the way Nightdive Studios remasters older
+games on its KEX engine: a game-specific engine runs the original game's data, so the game plays
+the same while the technology around it is modern. For OpenRAGE that means:
+
+- **The original experience comes first.** A "classic" setting should look and play as close to
+  RAGE in 2011 as possible.
+- **Every enhancement is a choice.** Megatexture fixes, upscalers, higher frame rates and other
+  improvements can each be turned on or off.
+- **Polish counts.** Stability, controller support, sensible defaults and fast loading matter as
+  much as the headline features.
+- **Mods are built in,** not an afterthought.
+
+Unlike those remasters, OpenRAGE is unofficial, has no access to the original source code, and
+never ships game files. It follows the model, not the arrangement.
+
 ## Goals
 
 ### Megatexture technology
