@@ -10,9 +10,9 @@
   notes. Compared with Doom 3 BFG Edition's GPL source (`neo/renderer/BinaryImageData.h`,
   `BinaryImage.cpp`, `ImageOpts.h`) and a Wolfenstein: The New Order extraction script.
 - Confidence: **verified** for the header fields listed as known, the mip records, cube maps and
-  the size of each format (every texture); **partially verified** for the format names (sizes and
-  the Wolfenstein script agree, but no pixels were decoded); **unknown** for three small header
-  fields.
+  the size of each format (every texture), and for BC1, BC3 and format 5, which OpenRAGE's engine
+  experiment displayed correctly; **inferred** for the YCoCg flag (nine textures); **unknown** for
+  formats 8 and 3 and for what the three small header fields mean individually.
 - Date: 2026-11-01
 
 ## What we know
@@ -86,6 +86,24 @@ needs a decoded image to confirm.
 BC1 and BC3 are the formats GPUs read directly, so these textures can be uploaded to Vulkan
 without any decoding.
 
+**Format 5 is verified on screen:** OpenRAGE's engine experiment displayed
+`fonts/arial/48.bimage` as a correct white-on-black glyph sheet.
+
+### YCoCg textures
+
+Some BC3 textures store color as **YCoCg** rather than RGB, a scheme id Software published for
+DXT5: brightness (Y) in alpha, the two color differences (Co, Cg) in red and green, and a scale
+factor in blue. To get RGB back: `scale = blue / 8 + 1`, `Co = (red − 128) / scale`,
+`Cg = (green − 128) / scale`, then `R = Y + Co − Cg`, `G = Y + Cg`, `B = Y − Co − Cg` (values out
+of 255).
+
+The sky texture `models/mapobjects/skies/w1_skydome_01.bimage` (4096×1024, one level) looks
+green and yellow as plain RGB, and decodes to a correct cloudy sky as YCoCg. All nine BC3
+textures whose header bytes 0x24 and 0x28 are both 0 have the YCoCg signature (blue nearly
+always 0–3 out of 31), while none of the 166 UI textures with 0x24 = 0 and 0x28 = 1 do. So
+"0x24 = 0 and 0x28 = 0" probably marks YCoCg (inferred from these nine). 72 textures with
+0x24 = 5 also have a low blue channel, which could be YCoCg or just dark or red images.
+
 ### Archive entries
 
 `.bimage` files appear under three entry types: `image` (most textures), `atlas` (particle and
@@ -109,8 +127,8 @@ which suggests Wolfenstein uses yet another version.
 ## Open questions
 
 - **The fields at 0x1C, 0x24 and 0x28.** They don't line up with texture type or format alone.
-  BFG's header has a color-format field (normal map, YCoCg, and so on) that may correspond to one
-  of them.
-- **Formats 5, 8 and 3.** Which channels they hold, confirmed by decoding a texture.
+  0x24 and 0x28 together seem to mark YCoCg (see above); what each means on its own is open.
+  0x28 = 1 appears on all the Flash UI images.
+- **Formats 8 and 3.** Which channels they hold, confirmed by decoding a texture.
 - **Why so few model textures.** Some props have `.bimage` textures of their own; most model
   surfaces probably come from `_vmtr.pages` (guess).

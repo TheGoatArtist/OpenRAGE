@@ -53,7 +53,13 @@ per-language audio (guess). Some non-voice samples have a single record with an 
 ### Compression
 
 Compressed entries use raw deflate (zlib with no header). Every compressed entry in all five
-archives unpacked to exactly its recorded size (see "Check results"). Small text files, such as
+archives unpacked to exactly its recorded size (see "Check results").
+
+The streams have **no final block**: they are flushed rather than finished, so a decompressor
+never reports the end of the stream. None of the 939 compressed `.bimage` entries in
+`base/gameresources.resources` has an end marker. A reader should treat an entry as complete once
+it has produced the recorded size. This was found when OpenRAGE's engine experiment first read
+the archives with zlib's strict end check. Small text files, such as
 some decls, tables and `renderParm` entries, are stored uncompressed.
 
 ### Where the data lives
