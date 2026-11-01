@@ -57,4 +57,4 @@ piece from the start:
 - What is the first concrete milestone? A viewer is proposed above.
 - How will the code be structured (engine, tools, launcher)?
 - Which language and build system? C++ with CMake is the usual choice for projects like this.
-- Which license? See [legal.md](legal.md).
+- ~~Which license?~~ GPL-3.0-or-later with an SDK exception. See [legal.md](legal.md#license).
