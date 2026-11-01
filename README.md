@@ -58,4 +58,8 @@ respective owners.
 
 ## License
 
-*To be decided.* See the open questions in [docs/legal.md](docs/legal.md).
+OpenRAGE is free software under the [GNU General Public License v3.0 or later](LICENSE), with an
+[additional permission](LICENSE-EXCEPTION.md) that allows combining it with proprietary vendor
+SDKs such as DLSS, XeSS and Steamworks. This covers everything in this repository, documentation
+included. It doesn't cover RAGE itself: the game's files stay the property of their owners and are
+never included. See [docs/legal.md](docs/legal.md).

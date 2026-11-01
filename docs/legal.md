@@ -46,14 +46,28 @@ original binaries. The usual options are:
 
 Whichever option is chosen, **decompiled or disassembled code is never committed.**
 
-## License (open decision)
+## License
 
-OpenRAGE inherits no license from id Software's code, so the project can choose freely. The
-common options are:
+Decided by both maintainers on 2026-10-31: **GPL-3.0-or-later** ([LICENSE](../LICENSE)), for
+everything in the repository, documentation included.
 
-- **GPL-3.0.** Copyleft: forks and derived works must stay open source. openQ4 and the other
-  id Tech 4 source ports use GPL because id's released code required it.
-- **MIT or zlib.** Permissive: anyone can reuse the code, including in closed-source projects.
+- **Why GPL.** Anyone can use and change OpenRAGE, but anything released that builds on it must
+  stay open source too. That keeps the work with the community, matches the non-commercial
+  spirit of the Tool Kit terms, and is the norm for projects like openQ4, OpenMW and OpenRCT2. It
+  also lets the project reuse GPL code from Doom 3 BFG or RBDOOM-3-BFG if it ever decides to.
+- **SDK exception.** Plain GPL doesn't allow shipping the code combined with closed libraries
+  that aren't part of the operating system. [LICENSE-EXCEPTION.md](../LICENSE-EXCEPTION.md)
+  grants an additional permission (GPL section 7) for proprietary vendor SDKs such as DLSS, XeSS
+  and Steamworks. It only covers code the OpenRAGE contributors own, not code taken from other
+  GPL projects.
+- **Compatible dependencies.** The planned open libraries (Vulkan headers and loader, volk, VMA,
+  SDL3, Dear ImGui, FidelityFX/FSR, FFmpeg, Jolt) are all under licenses that work with
+  GPL-3.0. GPU drivers count as system libraries.
+- **Steam policy is separate.** Whether an unofficial program may unlock RAGE's Steam
+  achievements is a question for Valve's and Bethesda's rules, not the license. The core build
+  should work without Steam.
+- **Contributions.** By contributing, you license your work under the same terms, including the
+  SDK exception.
 
 ## Name and trademarks
 

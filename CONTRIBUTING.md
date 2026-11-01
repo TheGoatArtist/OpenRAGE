@@ -27,6 +27,9 @@ New here? Start with [docs/getting-started.md](docs/getting-started.md) to set u
 4. **Show your evidence.** Research notes should say which game version, which file and how
    you found it, so others can check the work.
 5. **Respect the original.** Changes should serve RAGE's identity, not replace it.
+6. **Your contributions use the project's license.** By contributing, you agree to license your
+   work under GPL-3.0-or-later with the project's SDK exception. See
+   [docs/legal.md](docs/legal.md#license).
 
 ## Workflow
 
