@@ -55,6 +55,17 @@ python tools/resources.py "/path/to/RAGE/base/gameresources_sp_01.patch"
 Add `--check` to confirm every entry unpacks to its recorded size. The results should match the
 table in [research/formats/resources-archive.md](research/formats/resources-archive.md#check-results).
 
+To see the textures inside an archive (size, format and mip levels only, no image data):
+
+```bash
+python tools/bimage.py "/path/to/RAGE/base/gameresources.resources"
+```
+
+Add `--check` to confirm every texture's mip levels fill it exactly, and `--list` to see each one.
+For the DLC3 archive, add `--also "/path/to/RAGE/base/gameresources.resources"`, since many of its
+entries point into the base game's archive. Compare with
+[research/formats/bimage.md](research/formats/bimage.md).
+
 To see how a megatexture is laid out (page positions and sizes only, no image data):
 
 ```bash

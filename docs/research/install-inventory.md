@@ -87,9 +87,9 @@ against later.
    in Doom 3 BFG, which shares code with id Tech 5. Its public source may explain RAGE's
    formats closely, though versions will differ. **Licensing impact:** reusing any of that code
    would make OpenRAGE GPL-3.0.
-2. **Tiny generated files for first hex-editor practice.** The Tool Kit leftovers include
-   `.bimage` files of 70 and 78 bytes (`constantcolor_1_1_1_1_.bimage`, `nofalloff.bimage`).
-   They're small enough to decode by hand.
+2. ~~**Tiny generated files for first hex-editor practice.**~~ The 70- and 78-byte Tool Kit
+   `.bimage` files (`constantcolor_1_1_1_1_.bimage`, `nofalloff.bimage`) are explained in
+   [formats/bimage.md](formats/bimage.md). They're still good for practicing in a hex editor.
 3. ~~**Install the RAGE Tool Kit again.**~~ Done. See [toolkit-inventory.md](toolkit-inventory.md).
 4. **Generated shaders.** The Tool Kit cache had 166 shader pairs (`.cg` + `.glsl`), which
    suggests shaders are written in Cg and converted to GLSL.

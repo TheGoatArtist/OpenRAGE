@@ -34,6 +34,7 @@ research/
 - [toolkit-inventory.md](toolkit-inventory.md): the RAGE Tool Kit's source assets, formats, docs and mod builds
 - [formats/resources-archive.md](formats/resources-archive.md): the `.resources` / `.patch` archive format
 - [formats/megatexture-pages.md](formats/megatexture-pages.md): the `.pages` megatexture page tree and the `.pageLines` index
+- [formats/bimage.md](formats/bimage.md): the `.bimage` texture format, compared with Doom 3 BFG
 
 ## First targets
 
