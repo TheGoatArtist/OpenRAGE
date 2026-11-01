@@ -2,13 +2,20 @@
 
 - Game version / build: Steam build `1509967` (`Rage64.exe` 1.0.35.4669), with all DLC.
 - Files examined: all 87 `.pages` files and all 69 `.pageLines` files in `virtualtextures`,
-  `mp/virtualtextures`, `dlc/dlc2/virtualtextures` and `dlc/dlc3/virtualtextures`. Only the file
-  headers and the 40-byte header in front of each page were read. No page image data was decoded
-  or copied.
-- Tools used: hex dumps, then [tools/pages.py](../../../tools/pages.py), written from these notes.
+  `mp/virtualtextures`, `dlc/dlc2/virtualtextures` and `dlc/dlc3/virtualtextures`. For the tree,
+  only the file headers and the 40-byte header in front of each page were read. For the page body
+  layout, the bodies of every page in three files were read in memory and measured. No image data
+  was decoded or copied.
+- Tools used: hex dumps, then [tools/pages.py](../../../tools/pages.py), written from these notes;
+  Python experiments for the codec, then [tools/rage-jxr](../../../tools/rage-jxr/README.md), a
+  JPEG XR decoder in Rust that follows jxrlib's structure; the game's `vt_export` command and the
+  RAGE Tool Kit for ground truth.
 - Confidence: **verified** for the file header fields listed as known, the page tree and
-  `.pageLines` (every file); **unknown** for the image data inside each page and header field 0x08.
-- Date: 2026-10-30
+  `.pageLines` (every file), and for the map page body layout (three files); **verified against
+  the game's own export** for the model (`_vmtr`) page codec; **verified** for the map pages'
+  entropy coding (every stream of a 2,480-page Tool Kit map) and transform; **inferred** for the
+  exact scale of the map pages' final colour conversion; **unknown** for header field 0x08.
+- Date: 2026-10-30, page body added 2026-11-01, map codec solved 2026-11-01
 
 ## What we know
 
@@ -50,9 +57,199 @@ The children are in the order top-left, top-right, bottom-left, bottom-right: ch
 page at (x, y) is at (2x + (q & 1), 2y + (q >> 1)) one level down. A page whose four sizes are all
 0 is a leaf. A page's size includes its own header.
 
-The rest of each page is compressed image data. Every page body seen so far starts with the bytes
-`1E 1E 19 28` followed by a small 16-bit number (usually 4, 5 or 6). The compression is not
-decoded yet (see open questions).
+The rest of each page is compressed image data, described next.
+
+### Page body
+
+A page is 128×128 texels: a 120×120 payload with a 4-texel border copied from its neighbors, as
+id's own paper on RAGE's virtual textures states (van Waveren, *Software Virtual Textures*, 2012).
+Its first four bytes are **per-layer quality settings** (diffuse, normal, specular, power), not a
+magic number. Two body layouts exist: the **map layout**, used by the map page files, and the
+**model layout**, used by `_vmtr.pages`. The model layout is fully decoded (see "Model pages").
+
+#### Map layout
+
+Checked on every page of `scientist`, `dusty8` and `bash_tv_entrance` (15,797 pages).
+
+| Offset | Size | Meaning |
+| --- | --- | --- |
+| 0x00 | 4 | Quality per layer: `1E 1E 19 28` = 30, 30, 25, 40 in every page seen |
+| 0x04 | 2 | Mode, little-endian (see below) |
+| 0x06 | 2 × 4 | Sizes of the four layer streams, **big-endian** |
+| 0x0E | 2 | Always 0 |
+| 0x10 | | The four streams, one after another, then padding to an even length |
+| | 2,048 | Only when mode bit 3 is set: a 1-bit-per-texel mask (128 × 128 / 8) |
+
+The sizes add up exactly in every page checked. The mask is almost entirely `00` and `FF` bytes,
+which fits the "1-bit alpha channel (cover mask)" the paper describes.
+
+**The four streams are the page's layers.** The paper lists 10 channels per texel: a YCoCg
+diffuse map, a normal map's X and Y, a specular power map, a specular map (mono or RGB) and the
+cover mask. The streams match that:
+
+| Stream | Header | Typical size | Layer (inferred) |
+| --- | --- | --- | --- |
+| 1 | 15 bytes, starts `71 00` | 2–3 KB | Diffuse |
+| 2 | 15 bytes, starts `D1 10` | 1–2 KB, mostly zeros | Normal map |
+| 3 | 15 bytes (`71 01`) when mode bit 2 is 0, 11 bytes (`D1 00`) when it's 1 | 1–2 KB | Specular, color or mono |
+| 4 | 11 bytes, starts `D1 00` | about 140 bytes | Specular power |
+
+Each stream header is the same in every page for that stream. Its middle part repeats one
+5-nibble group three times in the 15-byte headers and appears once in the 11-byte ones, so it
+probably holds per-channel settings such as quantizers (guess). All headers end with
+`FF 00 00 01 00`.
+
+**Mode bits** (values seen: 0, 1, 2, 4, 5, 6 and the same plus 8): bit 3 adds the mask; bit 2
+selects a mono specular stream; the low bits (0, 1 or 2) are not known. They are not the overlap
+mode: every page tested decodes best with overlap mode 1 whatever its low bits.
+
+### The codecs
+
+The game's executable names two page codecs in its log strings ("DCT pages" and "HDP pages") and
+ships CUDA kernels named after them: an inverse 8×8 DCT with run-length input (`IDCT`,
+`RLE_IDCT`, `Idct1D`), HD Photo's inverse transform and overlap filter (`InvTransformHDP`,
+`InvFilterHDP`), and re-encoders to YCoCg DXT5, normal-map DXT and specular. Only names were read,
+not the GPU code. The kernels take 16-bit coefficients, so the entropy decoding happens on the
+CPU, in code that is encrypted in the shipped executable.
+
+id's papers describe the same split: pages on disk use "a JPEG-like DCT based format" or HD Photo
+/ JPEG XR (2012), and the DCT format is JPEG with YCoCg instead of YCbCr, zig-zag order, and
+Huffman plus run-length coding (*Real-Time Texture Streaming & Decompression*, 2006).
+
+**Map pages are JPEG XR (HD Photo) codestreams with the image header stripped.** Each stream is
+a JPEG XR image-plane header, then `FF` (the escape value meaning "no profile/level field"), then
+one spatial-mode tile packet (`00 00 01 00`). Parsing the plane headers gives:
+
+| Stream | JPEG XR plane | Quantizer index |
+| --- | --- | --- |
+| Diffuse | YUV 4:4:4, 3 channels | Y 30, color 60 ("mixed") |
+| Normal | N-component, 2 channels | 30 |
+| Specular (mono pages) | N-component, 1 channel | 25 |
+| Power | N-component, 1 channel | 40 |
+
+All use scaled arithmetic and the "no flexbits" subband setting. **The four quality bytes at the
+start of the page body are these quantizer indices** (30, 30, 25, 40). RAGE leaves out the
+`WMPHOTO` signature and the 8-byte image header (version, overlap mode, size, formats).
+
+A standard decoder (Windows' codec, or Microsoft's reference implementation jxrlib, BSD) reads
+the first macroblock of each stream correctly and then loses its place. The power stream of
+`wasteland1` page (0,0) at file level 5, for example, is bit-identical to a standard 32×32 flat
+image for its first 75 bits and then falls further behind with each macroblock.
+
+**RAGE's map codec is standard JPEG XR with four changes to the adaptive entropy coding.** They
+were found with a decoder written for OpenRAGE (first in Python, now
+[tools/rage-jxr](../../../tools/rage-jxr/README.md) in Rust) that follows jxrlib's spatial-mode
+parser line by line. On standard streams it reproduces jxrlib's coefficients exactly:
+
+1. **Each channel has its own bit-precision model, weighted like luma.** JPEG XR adapts how many
+   raw bits it spends per coefficient, with one model for luma and one shared by both chroma
+   channels, which counts their nonzero values with a smaller weight. RAGE keeps one model per
+   channel for each band (DC, low-pass, high-pass), and updates every one with the luma weights.
+2. **Each channel has its own coded-block-pattern model.** JPEG XR shares one CBP prediction
+   model between U and V; RAGE gives every channel its own, each starting from the standard
+   initial state.
+3. **N-component streams never update the DC model.** It stays at 8 raw bits per DC value. In
+   colour streams the DC model adapts normally (per channel, as above).
+4. **N-component streams code every channel with the luma contexts.** JPEG XR codes channels
+   after the first with the chroma code tables; RAGE uses the luma tables for all of them. Colour
+   streams use the chroma tables as normal.
+
+With these four changes, **every stream tested parses to the end of its stream**, each ending
+within its last byte: all four layers of every page of the Tool Kit's sample map (2,480 pages)
+and of the retail `wasteland1` (549,714 pages, 2.2 million streams), `scientist` (3,271) and
+`dusty8` (6,427) megatextures (`rage-jxr check`).
+Each change on its own was needed: without change 1, textured colour pages lose their place in
+the second macroblock row; without 3 or 4, textured normal maps fail.
+
+Everything after the entropy coding is standard JPEG XR:
+
+- **Overlap mode 1** (the first-stage overlap filter only) and **JPEG XR's operators** (codec
+  subversion 1, not HD Photo 1.0's), on every page tested. The page's mode bits don't select it.
+- The decoder's pixel stage (dequantization, prediction, inverse transform and overlap filter)
+  matches jxrlib's output byte for byte on standard streams, in all three overlap modes with both
+  operator sets (`rage-jxr jxr`, 24 test images).
+- Image sizes: diffuse, normal and specular are 128×128; power is 32×32.
+
+**The diffuse planes hold RAGE's YCoCg, not JPEG XR's colour.** JPEG XR's own YUV→RGB output comes
+out dark and green; reading the three planes as Y, Co and Cg and converting the way model pages
+do (R = Y + Co − Cg, G = Y + Cg, B = Y − Co − Cg) gives the right image. Fitted against the Tool
+Kit ground truth (see the open questions), Y = plane / 9.69 + 128 (r = 0.9999 over 768
+macroblock means), and Co and Cg are about plane / 20, which fits chroma at half the luma scale
+(1/19.4); the exact constants are inferred, not derived. With those values:
+
+- the Tool Kit pages match visually; what's left looks like the reference's own JPEG noise, with
+  no block structure;
+- the retail `wasteland1` page (0,0) matches the game's own `vt_export` RGB to a mean of
+  2.9/255 per channel.
+
+Also learned:
+
+- On terrain pages the game only uses the diffuse layer: the exported normal, specular, power
+  and mask of `wasteland1` page (0,0) are constants (flat normal, power 32, specular 0, full
+  coverage).
+
+#### Model pages (`_vmtr`): decoded
+
+Decoded from the bitstream and checked against ground truth exported by the game itself (see
+"Ground truth with `vt_export`"). Checked on `_vmtr.pages` pages at file levels 3 and 5.
+
+| Offset | Size | Meaning |
+| --- | --- | --- |
+| 0x00 | 4 | Quality per layer: 90, 80, 60, 80 |
+| 0x04 | 1 | Always 0x50 so far |
+| 0x05 | 1 | 0, 1 or 2; meaning not known (mode values 0x050, 0x150, 0x250) |
+| 0x06 | 6 | Small flags, mostly 0 |
+| 0x0C | 4 × 5 | Sizes of five streams, big-endian: diffuse, normal, specular, power, mask (2,048 or 0) |
+| 0x20 | | The streams, one after another; the sizes add up to the body length exactly |
+
+Each stream is **baseline JPEG entropy-coded data**: the standard JPEG Huffman tables (ITU T.81
+Annex K), read most significant bit first, with no `FF 00` byte stuffing, no markers and no
+per-stream header. Each block is a DC difference (predicted from the previous block of the same
+channel, starting at 0) followed by run/size-coded AC values in standard zig-zag order. This is the
+format in id's 2006 paper.
+
+| Stream | Content | Blocks |
+| --- | --- | --- |
+| Diffuse | YCoCg 4:2:0. Per 16×16 area: four Y blocks (top-left, top-right, bottom-left, bottom-right; luma tables), then Co, then Cg (chroma tables). Areas in rows, left to right | 384 |
+| Normal | Two channels, alternating per 8×8 tile (X, Y, X, Y …), luma tables | 512 |
+| Specular | One channel (mono) in the pages checked, luma tables | 256 |
+| Power | One channel at 32×32 (a quarter of the page in each direction), luma tables | 16 |
+| Mask | Not JPEG: 128 × 128 bits, row by row, **least significant bit first** in each byte | 2,048 bytes |
+
+**Reconstruction:**
+
+- **Quantization:** the standard JPEG tables (Annex K, luma and chroma) scaled by the layer's
+  quality byte the way libjpeg does it: scale = 5000 / q below 50, otherwise 200 − 2q; each entry
+  becomes (entry × scale + 50) / 100, clamped to 1–255. The diffuse layer uses the luma table for Y
+  and the chroma table for Co and Cg; the other layers use the luma table with their own quality.
+- **Inverse DCT:** the standard 8×8 JPEG IDCT.
+- **Y** gets the usual +128 JPEG level shift.
+- **Co and Cg** are stored at half scale: with `c` the IDCT output (no level shift),
+  `Co = 2 × (c − 64)`, and the same for Cg. Co is the first chroma block of each area. Then
+  `R = Y + Co − Cg`, `G = Y + Cg`, `B = Y − Co − Cg`.
+- **Normal channels** are also at half scale: with `n` the IDCT output, the value the game exports
+  is `2 × (n + 64)`.
+- **Specular and power** get the +128 level shift and are used as is.
+
+**How well it matches the game's own output:** the decoded Co and Cg match the game's exported
+physical diffuse texture to within 0.5/255 on average, both normal channels correlate at 0.999 with
+the exported normal texture, power matches to about 1.3/255, and the mask matches exactly. Y
+correlates at 0.98 with the exported physical Y, which applies a linear remap (about
+0.87·Y + 23) that lifts dark values; the RGB file the game exports includes that lift. Which is the
+"true" brightness for rendering is still to be confirmed.
+
+#### Ground truth with `vt_export`
+
+The retail game's console command `vt_export <pageSrc> [<level> <x> <y> <w> <h>] [tga]` writes the
+decoded texels of a loaded virtual texture to `base\screenshots\` in the game folder (not the
+save folder). Region units are texels at that level. `vt_info` lists the page sources: 1 is
+`_vmtr`, 2 is `_vmtr_dlc`, and the current map's file comes after. The game maps every page file
+into one 2048-page-wide, 12-level space, so a file's level appears in the game as file level +
+(12 − the file's level count): +2 for `_vmtr` (10 levels), +1 for an 11-level map. Page (x, y)'s
+120×120 payload is texels x·120 to x·120+119. Each export writes four files: the RGB diffuse, the
+physical YCoCg diffuse (Co, Cg, 0, Y), the normal/power texture (power, normal Y, 0, normal X) and
+the specular/mask texture (specular RGB, mask). The exported images are decoded game data and stay
+on the player's machine.
 
 **File order.** Pages are stored coarsest level first: the top page, then all of the next level,
 and so on down to level 0. So the low-detail overview is at the front of the file and the sharpest
@@ -106,10 +303,20 @@ tree predicts. Results for this build:
 
 ## Open questions
 
-- **The image data inside each page.** id's published talks on id Tech 5 describe pages stored
-  in a compact custom format and converted to DXT while the game runs, and `Rage64.exe` contains a
-  CUDA DXT encoder (`CudaDXTEncode.cu`). The body's first bytes and its small mode number are the
-  starting points. This is the key piece for showing the original textures in OpenRAGE.
+- **The exact final colour conversion of map pages.** The Y and chroma scales above are fitted,
+  not derived, and decoded luma still differs from the retail `vt_export` layer by about 4
+  levels RMS (r = 0.996). The residual is noise-like and largest at the centre of each 4×4
+  block. The export may not be exact either: on a model page, whose codec is proven, its Y layer
+  shows a brightness-dependent bias. Settling this needs either a cleaner ground truth or the
+  game's own conversion.
+- **Ground truth for map pages.** In the RAGE Tool Kit (not the retail game, where the command
+  isn't registered), `vt_processPageFile -dct -pageFile ../virtualtextures/basic_env_v001.pages
+  -outFile basic_env_v001_dct.pages` re-encodes a page file into the DCT format, which decodes
+  exactly. It converted all 2,480 pages of the sample map (7.9 MB → 14 MB, written next to the
+  original). It is lossy itself (JPEG-like, chroma at half resolution), so it confirms structure
+  and scale but can't confirm the map decoder to the last bit.
+- **What the low mode bits and the stream-header fields mean**, and which pages are DCT and which
+  are HD Photo.
 - **Header field 0x08.** It doesn't match any total we tried (bytes per level, leaf bytes, body
   bytes, level boundaries).
 - **Page size in pixels**, and whether pages carry a border. The engine log mentions

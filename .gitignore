@@ -66,6 +66,7 @@ obj/
 *.ilk
 __pycache__/
 *.pyc
+target/
 
 # --- Editors / OS ---
 .vs/

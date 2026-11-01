@@ -76,6 +76,18 @@ Give it the whole RAGE folder with `--check` to test every megatexture. It reads
 spread across about 19 GB, so expect it to take a long time on a hard drive. Compare the results
 with [research/formats/megatexture-pages.md](research/formats/megatexture-pages.md#check-results).
 
+To decode a megatexture page into an image, use the Rust tool in
+[tools/rage-jxr](../tools/rage-jxr/README.md). It needs Rust ([rustup.rs](https://rustup.rs)):
+
+```bash
+cd tools/rage-jxr
+cargo build --release
+./target/release/rage-jxr decode "/path/to/RAGE/virtualtextures/scientist.pages" 0 0 3 -o page.png
+```
+
+`rage-jxr check FILE.pages` confirms every page of a megatexture decodes. Keep decoded images out
+of the repository; they're game content.
+
 ## 5. Save and share changes
 
 ```bash
