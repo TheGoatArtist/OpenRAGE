@@ -1,4 +1,4 @@
-The decoder in src/entropy.rs and src/transform.rs follows the structure of Microsoft's jxrlib
+The decoder in src/entropy.* and src/transform.* follows the structure of Microsoft's jxrlib
 (https://github.com/4creators/jxrlib), the JPEG XR reference implementation, and is a derivative
 of it. jxrlib's license:
 

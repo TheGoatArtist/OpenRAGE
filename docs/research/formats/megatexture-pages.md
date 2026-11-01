@@ -8,7 +8,7 @@
   was decoded or copied.
 - Tools used: hex dumps, then [tools/pages.py](../../../tools/pages.py), written from these notes;
   Python experiments for the codec, then [tools/rage-jxr](../../../tools/rage-jxr/README.md), a
-  JPEG XR decoder in Rust that follows jxrlib's structure; the game's `vt_export` command and the
+  JPEG XR decoder in C++ that follows jxrlib's structure; the game's `vt_export` command and the
   RAGE Tool Kit for ground truth.
 - Confidence: **verified** for the file header fields listed as known, the page tree and
   `.pageLines` (every file), and for the map page body layout (three files); **verified against
@@ -138,7 +138,7 @@ image for its first 75 bits and then falls further behind with each macroblock.
 
 **RAGE's map codec is standard JPEG XR with four changes to the adaptive entropy coding.** They
 were found with a decoder written for OpenRAGE (first in Python, now
-[tools/rage-jxr](../../../tools/rage-jxr/README.md) in Rust) that follows jxrlib's spatial-mode
+[tools/rage-jxr](../../../tools/rage-jxr/README.md) in C++) that follows jxrlib's spatial-mode
 parser line by line. On standard streams it reproduces jxrlib's coefficients exactly:
 
 1. **Each channel has its own bit-precision model, weighted like luma.** JPEG XR adapts how many

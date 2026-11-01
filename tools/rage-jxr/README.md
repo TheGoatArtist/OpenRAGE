@@ -10,13 +10,14 @@ from your own copy of the game: keep them out of the repository.
 
 ## Build
 
-Needs Rust (from [rustup.rs](https://rustup.rs)); no other dependencies.
+C++20 and CMake 3.16 or newer; no other dependencies.
 
 ```bash
-cargo build --release
+cmake -S . -B build
+cmake --build build --config Release
 ```
 
-The program is `target/release/rage-jxr` (`rage-jxr.exe` on Windows).
+The program is `build/rage-jxr` on Linux and `build/Release/rage-jxr.exe` with Visual Studio.
 
 ## Use
 
