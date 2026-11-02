@@ -14,6 +14,7 @@
 
 #include "entropy.h"
 #include "image_out.h"
+#include "megatexture.h"
 #include "pages.h"
 #include "transform.h"
 
@@ -27,6 +28,9 @@ const char* USAGE =
     "      Decode one page to PNG. <level> is the level in the file (0 = most detailed).\n"
     "      --layers   also write the normal, specular and power layers (scales not yet confirmed)\n"
     "      --payload  crop to the 120x120 payload, without the 4-texel border\n"
+    "  rage-jxr level <file.pages> <level> [-o out.png]\n"
+    "      Decode the diffuse layer of a whole level into one image (120 texels per page).\n"
+    "      Pages the file leaves out are filled from the nearest coarser page.\n"
     "  rage-jxr check <file.pages>\n"
     "      Parse every stream of every page and report whether each ends exactly at its end.\n"
     "  rage-jxr jxr <file.jxr> <out.ppm|out.png> [--rage] [--dump]\n"
@@ -135,6 +139,20 @@ int cmd_decode(const Args& a) {
     return 0;
 }
 
+int cmd_level(const Args& a) {
+    if (a.positional.size() != 2) throw std::runtime_error(std::string("level needs <file.pages> <level>\n\n") + USAGE);
+    uint32_t level = num(a.positional[1], "level");
+    auto start = std::chrono::steady_clock::now();
+    pages::PagesFile file(a.positional[0]);
+    pages::LevelImage img = pages::assemble_diffuse(file, level);
+    double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    std::string out = a.out.empty() ? "level_" + std::to_string(level) + ".png" : a.out;
+    if (!write_png(out, img.width, img.height, 3, img.rgb)) throw std::runtime_error(out + ": cannot write");
+    std::printf("level %u of %u: %dx%d, %zu pages decoded, %zu filled from coarser pages, %.1fs -> %s\n", level,
+                file.levels, img.width, img.height, img.decoded, img.filled, secs, out.c_str());
+    return 0;
+}
+
 int cmd_check(const Args& a) {
     if (a.positional.empty()) throw std::runtime_error(std::string("check needs <file.pages>\n\n") + USAGE);
     auto start = std::chrono::steady_clock::now();
@@ -233,6 +251,7 @@ int main(int argc, char** argv) {
     Args a = parse_args(argc, argv);
     try {
         if (cmd == "decode") return cmd_decode(a);
+        if (cmd == "level") return cmd_level(a);
         if (cmd == "check") return cmd_check(a);
         if (cmd == "jxr") return cmd_jxr(a);
     } catch (const std::exception& e) {

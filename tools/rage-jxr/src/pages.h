@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace pages {
@@ -26,9 +27,13 @@ public:
     std::vector<uint8_t> body(const PageEntry& page);
 
     std::vector<PageEntry> pages;
+    // Number of levels: the top page is at level `levels - 1` and is 1 page across; level L is
+    // 2^(levels - 1 - L) pages across.
+    uint32_t levels = 0;
 
 private:
     std::FILE* file_ = nullptr;
+    std::unordered_map<uint64_t, size_t> index_;  // (level, y, x) -> position in `pages`
     void read_at(uint64_t offset, void* dst, size_t n);
 };
 

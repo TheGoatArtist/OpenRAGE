@@ -19,6 +19,10 @@ cmake --build build --config Release
 
 The program is `build/rage-jxr` on Linux and `build/Release/rage-jxr.exe` with Visual Studio.
 
+The decoder itself is the `ragejxr` library (everything in `src/` except `main.cpp` and
+`image_out.*`), which OpenRAGE's engine links with `add_subdirectory` on this folder. Its public
+headers are `megatexture.h` and `pages.h`.
+
 ## Use
 
 Decode one page to PNG. `<level>` is the level as stored in the file (0 = most detailed):
@@ -31,6 +35,14 @@ rage-jxr decode "/path/to/RAGE/virtualtextures/wasteland1.pages" 0 0 5 -o page.p
   confirmed yet, so treat those images as previews.
 - `--payload` crops to the 120×120 payload, dropping the 4-texel border pages share with their
   neighbours.
+
+Decode the diffuse layer of a whole level into one image, 120 texels per page. Level 7 of
+`wasteland1` is 960×960; each level down doubles that. Pages the file leaves out (often large
+areas at detailed levels) are filled from the nearest coarser page:
+
+```bash
+rage-jxr level "/path/to/RAGE/virtualtextures/wasteland1.pages" 7 -o wasteland1_7.png
+```
 
 Check that every stream of every page decodes, ending exactly where its stream ends:
 

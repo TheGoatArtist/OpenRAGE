@@ -17,6 +17,10 @@ constexpr uint64_t UNIT = 2;  // child offsets and sizes count 2-byte units
 
 uint32_t le32(const uint8_t* p) { return p[0] | p[1] << 8 | p[2] << 16 | static_cast<uint32_t>(p[3]) << 24; }
 
+uint64_t key(uint32_t x, uint32_t y, uint32_t level) {
+    return static_cast<uint64_t>(level) << 32 | static_cast<uint64_t>(y) << 16 | x;
+}
+
 // (offset, size) of each child named in a page header.
 std::vector<std::pair<uint64_t, uint64_t>> children(const uint8_t* h) {
     uint32_t s01 = le32(h + 24), s23 = le32(h + 28);
@@ -71,6 +75,10 @@ PagesFile::PagesFile(const std::string& path) {
         pages.push_back({offset, size, xy & 0xFFFF, xy >> 16, le32(h + 36)});
         for (auto& c : children(h)) pending.push(c);
     }
+    for (size_t i = 0; i < pages.size(); ++i) {
+        index_.emplace(key(pages[i].x, pages[i].y, pages[i].level), i);
+        if (pages[i].level + 1 > levels) levels = pages[i].level + 1;
+    }
 }
 
 PagesFile::~PagesFile() {
@@ -78,9 +86,8 @@ PagesFile::~PagesFile() {
 }
 
 const PageEntry* PagesFile::find(uint32_t x, uint32_t y, uint32_t level) const {
-    for (const auto& p : pages)
-        if (p.x == x && p.y == y && p.level == level) return &p;
-    return nullptr;
+    auto it = index_.find(key(x, y, level));
+    return it == index_.end() ? nullptr : &pages[it->second];
 }
 
 std::vector<uint8_t> PagesFile::body(const PageEntry& page) {
