@@ -198,9 +198,10 @@ Decoded from the bitstream and checked against ground truth exported by the game
 | 0x00 | 4 | Quality per layer: 90, 80, 60, 80 |
 | 0x04 | 1 | Always 0x50 so far |
 | 0x05 | 1 | 0, 1 or 2; meaning not known (mode values 0x050, 0x150, 0x250) |
-| 0x06 | 6 | Small flags, mostly 0 |
+| 0x06 | 1 | 1 when the specular layer is one channel, 0 when it is colour (inferred, see below) |
+| 0x07 | 5 | Small flags, mostly 0 |
 | 0x0C | 4 × 5 | Sizes of five streams, big-endian: diffuse, normal, specular, power, mask (2,048 or 0) |
-| 0x20 | | The streams, one after another; the sizes add up to the body length exactly |
+| 0x20 | | The streams, one after another, then one zero byte if needed to make the length even |
 
 Each stream is **baseline JPEG entropy-coded data**: the standard JPEG Huffman tables (ITU T.81
 Annex K), read most significant bit first, with no `FF 00` byte stuffing, no markers and no
@@ -212,7 +213,7 @@ format in id's 2006 paper.
 | --- | --- | --- |
 | Diffuse | YCoCg 4:2:0. Per 16×16 area: four Y blocks (top-left, top-right, bottom-left, bottom-right; luma tables), then Co, then Cg (chroma tables). Areas in rows, left to right | 384 |
 | Normal | Two channels, alternating per 8×8 tile (X, Y, X, Y …), luma tables | 512 |
-| Specular | One channel (mono) in the pages checked, luma tables | 256 |
+| Specular | Byte 6 = 1: one channel, luma tables. Byte 6 = 0: colour, coded exactly like the diffuse stream | 256 or 384 |
 | Power | One channel at 32×32 (a quarter of the page in each direction), luma tables | 16 |
 | Mask | Not JPEG: 128 × 128 bits, row by row, **least significant bit first** in each byte | 2,048 bytes |
 
@@ -237,6 +238,20 @@ the exported normal texture, power matches to about 1.3/255, and the mask matche
 correlates at 0.98 with the exported physical Y, which applies a linear remap (about
 0.87·Y + 23) that lifts dark values; the RGB file the game exports includes that lift. Which is the
 "true" brightness for rendering is still to be confirmed.
+
+**Whole files.** The C++ decoder in [tools/rage-jxr](../../../tools/rage-jxr/README.md) decodes
+model pages too, identically to the Python prototype on the ground-truth page. `rage-jxr check`
+parses every stream of every page of all three model files, and each one ends within its last
+byte: `_vmtr.pages` (215,091 pages), the multiplayer folder's `_vmtr.pages` (136,138) and DLC3's
+`_vmtr_dlc.pages` (12,924), 1.46 million streams in all. That check found two things the first
+pages hadn't shown:
+
+- About half the bodies have one zero byte after the streams, padding them to an even length.
+- About 40% of pages have **colour specular**: byte 6 is 0 and the specular stream has the
+  diffuse stream's structure (YCoCg 4:2:0, four Y blocks then two chroma blocks per 16×16 area,
+  chroma tables). In a sample, byte 6 = 0 matched the colour structure and byte 6 = 1 the mono
+  one in every page. The colour conversion is assumed to be the diffuse one; no ground truth has
+  colour specular yet.
 
 #### Ground truth with `vt_export`
 

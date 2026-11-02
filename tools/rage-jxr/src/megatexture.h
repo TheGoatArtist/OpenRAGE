@@ -13,8 +13,8 @@ constexpr int PAGE_SIZE = 128;
 constexpr int PAGE_BORDER = 4;
 constexpr int PAGE_PAYLOAD = PAGE_SIZE - 2 * PAGE_BORDER;
 
-// Decode a map page's diffuse layer to 128x128 RGB. Returns false when the body isn't in the
-// map layout (model pages use another codec). Throws if a stream is damaged.
+// Decode a page's diffuse layer to 128x128 RGB, from either body layout: map pages (JPEG XR) or
+// model pages (_vmtr, DCT). Returns false when the body is in neither. Throws if a stream is damaged.
 bool decode_diffuse(const std::vector<uint8_t>& body, std::vector<uint8_t>& rgb);
 
 struct LevelImage {
@@ -25,7 +25,7 @@ struct LevelImage {
 };
 
 // The diffuse layer of one whole level, page payloads side by side. Throws when the file has no
-// such level or isn't a map megatexture.
+// such level or no page decodes.
 LevelImage assemble_diffuse(PagesFile& file, uint32_t level);
 
 }  // namespace pages

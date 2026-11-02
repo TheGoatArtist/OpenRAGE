@@ -52,4 +52,17 @@ struct MapPage {
     static int layer_size(int layer) { return layer == 3 ? 32 : 128; }
 };
 
+// A page body in the model layout (_vmtr.pages): four DCT layer streams and an optional mask.
+struct ModelPage {
+    uint8_t quality[4] = {};  // per layer: diffuse, normal, specular, power
+    // Byte 6: 1 for a one-channel specular layer, 0 for colour specular coded like the diffuse
+    // layer (YCoCg 4:2:0). Inferred: every stream checked parses exactly that way.
+    bool mono_specular = false;
+    const uint8_t* stream[5] = {};
+    size_t stream_size[5] = {};  // the fifth is the mask: 2048 bytes or none
+
+    // Returns false when the body isn't in the model layout. Bodies are padded to an even length.
+    bool parse(const std::vector<uint8_t>& body);
+};
+
 }  // namespace pages

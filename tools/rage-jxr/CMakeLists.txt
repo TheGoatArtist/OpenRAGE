@@ -12,6 +12,7 @@ add_library(ragejxr STATIC
     src/transform.cpp
     src/pages.cpp
     src/megatexture.cpp
+    src/dct.cpp
 )
 target_include_directories(ragejxr PUBLIC src)
 

@@ -116,4 +116,25 @@ bool MapPage::parse(const std::vector<uint8_t>& body) {
     return true;
 }
 
+bool ModelPage::parse(const std::vector<uint8_t>& body) {
+    constexpr size_t STREAMS = 0x20;
+    if (body.size() < STREAMS) return false;
+    uint64_t pos = STREAMS;
+    for (int i = 0; i < 5; ++i) {
+        const uint8_t* p = &body[0x0C + 4 * i];
+        stream_size[i] = static_cast<size_t>(p[0]) << 24 | p[1] << 16 | p[2] << 8 | p[3];
+        pos += stream_size[i];
+    }
+    const uint64_t padded = (pos + 1) & ~uint64_t(1);
+    if (padded != body.size() || (stream_size[4] != 0 && stream_size[4] != 2048)) return false;
+    pos = STREAMS;
+    for (int i = 0; i < 5; ++i) {
+        stream[i] = body.data() + pos;
+        pos += stream_size[i];
+    }
+    for (int i = 0; i < 4; ++i) quality[i] = body[i];
+    mono_specular = body[6] != 0;
+    return true;
+}
+
 }  // namespace pages

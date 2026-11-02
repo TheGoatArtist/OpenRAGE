@@ -1,9 +1,15 @@
 # rage-jxr
 
-Decodes RAGE's megatexture **map pages**. Each page holds four JPEG XR streams (diffuse, normal,
-specular, power) written by id Software's own encoder, which differs from standard JPEG XR in
-four places of its adaptive entropy coding. The format and those differences are described in
+Decodes RAGE's megatexture pages, in both of their codecs:
+
+- **Map pages** hold four JPEG XR streams (diffuse, normal, specular, power) written by id
+  Software's own encoder, which differs from standard JPEG XR in four places of its adaptive
+  entropy coding.
+- **Model pages** (`_vmtr.pages`) hold DCT streams coded like baseline JPEG, plus a 1-bit mask.
+
+The formats are described in
 [docs/research/formats/megatexture-pages.md](../../docs/research/formats/megatexture-pages.md).
+The program is named after the JPEG XR part, which came first.
 
 It reads only the files you give it and writes only the images you ask for. Decoded pages come
 from your own copy of the game: keep them out of the repository.
@@ -31,8 +37,9 @@ Decode one page to PNG. `<level>` is the level as stored in the file (0 = most d
 rage-jxr decode "/path/to/RAGE/virtualtextures/wasteland1.pages" 0 0 5 -o page.png
 ```
 
-- `--layers` also writes the normal, specular and power layers. Their value scales aren't
-  confirmed yet, so treat those images as previews.
+- `--layers` also writes the normal, specular and power layers, and for model pages the mask.
+  For map pages their value scales aren't confirmed yet, and neither is the colour conversion of
+  colour specular on model pages, so treat those images as previews.
 - `--payload` crops to the 120×120 payload, dropping the 4-texel border pages share with their
   neighbours.
 
@@ -43,6 +50,8 @@ areas at detailed levels) are filled from the nearest coarser page:
 ```bash
 rage-jxr level "/path/to/RAGE/virtualtextures/wasteland1.pages" 7 -o wasteland1_7.png
 ```
+
+`_vmtr.pages` has 10 levels, so its level 6 is 960×960.
 
 Check that every stream of every page decodes, ending exactly where its stream ends:
 
@@ -57,8 +66,8 @@ reference implementation (`--rage` applies RAGE's rules, `--dump` prints coeffic
 rage-jxr jxr image.jxr image.ppm
 ```
 
-Supported: spatial-mode, single-tile, 4:4:4 / greyscale / N-component images, which covers every
-map page. Model pages (`_vmtr.pages`) use a different, DCT-based codec and aren't handled here.
+The JPEG XR side supports spatial-mode, single-tile, 4:4:4 / greyscale / N-component images,
+which covers every map page.
 
 ## License
 

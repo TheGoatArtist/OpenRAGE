@@ -1,9 +1,10 @@
-// rage-jxr: decode RAGE (2011) megatexture map pages.
+// rage-jxr: decode RAGE (2011) megatexture pages.
 //
 // RAGE's map pages hold four JPEG XR streams (diffuse, normal, specular, power) written by
 // id Software's own encoder, which departs from the standard in four places of its adaptive
-// entropy coding. See docs/research/formats/megatexture-pages.md. Only reads files you supply;
-// it writes the images you ask for and nothing else.
+// entropy coding. Model pages (_vmtr) hold DCT streams coded like baseline JPEG. See
+// docs/research/formats/megatexture-pages.md. Only reads files you supply; it writes the images
+// you ask for and nothing else.
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -12,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "dct.h"
 #include "entropy.h"
 #include "image_out.h"
 #include "megatexture.h"
@@ -21,12 +23,13 @@
 namespace {
 
 const char* USAGE =
-    "rage-jxr: decode RAGE megatexture map pages\n"
+    "rage-jxr: decode RAGE megatexture pages (map pages and _vmtr model pages)\n"
     "\n"
     "Usage:\n"
     "  rage-jxr decode <file.pages> <x> <y> <level> [-o out.png] [--layers] [--payload]\n"
     "      Decode one page to PNG. <level> is the level in the file (0 = most detailed).\n"
-    "      --layers   also write the normal, specular and power layers (scales not yet confirmed)\n"
+    "      --layers   also write the normal, specular and power layers, and a model page's mask\n"
+    "                 (some scales not yet confirmed)\n"
     "      --payload  crop to the 120x120 payload, without the 4-texel border\n"
     "  rage-jxr level <file.pages> <level> [-o out.png]\n"
     "      Decode the diffuse layer of a whole level into one image (120 texels per page).\n"
@@ -97,6 +100,29 @@ std::string suffixed(const std::string& path, const char* suffix) {
     return stem + "_" + suffix + ".png";
 }
 
+// Write a model page's layers (diffuse, and with --layers the others and the mask).
+int write_model_page(const Args& a, const pages::ModelPage& m, const std::string& out) {
+    auto save = [&](const char* name, std::vector<uint8_t> px, int size, int channels, int border) {
+        if (a.has("--payload")) px = crop(px, size, channels, border, size);
+        std::string path = std::strcmp(name, "diffuse") == 0 ? out : suffixed(out, name);
+        if (!write_png(path, size, size, channels, px)) throw std::runtime_error(path + ": cannot write");
+        std::printf("%s %dx%d -> %s\n", name, size, size, path.c_str());
+    };
+    save("diffuse", dct::diffuse_rgb(m.stream[0], m.stream_size[0], m.quality[0]), 128, 3, 4);
+    if (!a.has("--layers")) return 0;
+    auto xy = dct::normal_xy(m.stream[1], m.stream_size[1], m.quality[1]);
+    std::vector<uint8_t> normal;
+    for (size_t i = 0; i < xy.size(); i += 2) normal.insert(normal.end(), {xy[i], xy[i + 1], 0});
+    save("normal", normal, 128, 3, 4);
+    if (m.mono_specular)
+        save("specular", dct::gray(m.stream[2], m.stream_size[2], m.quality[2], 128), 128, 1, 4);
+    else
+        save("specular", dct::diffuse_rgb(m.stream[2], m.stream_size[2], m.quality[2]), 128, 3, 4);
+    save("power", dct::gray(m.stream[3], m.stream_size[3], m.quality[3], 32), 32, 1, 1);
+    if (m.stream_size[4]) save("mask", dct::mask(m.stream[4], m.stream_size[4]), 128, 1, 4);
+    return 0;
+}
+
 int cmd_decode(const Args& a) {
     if (a.positional.size() != 4) throw std::runtime_error(std::string("decode needs <file.pages> <x> <y> <level>\n\n") + USAGE);
     uint32_t x = num(a.positional[1], "x"), y = num(a.positional[2], "y"), level = num(a.positional[3], "level");
@@ -106,12 +132,17 @@ int cmd_decode(const Args& a) {
         throw std::runtime_error("no page (" + std::to_string(x) + ", " + std::to_string(y) + ") at level " +
                                  std::to_string(level));
     auto body = file.body(*page);
+    std::string out = a.out.empty() ? "page_" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(level) + ".png" : a.out;
     pages::MapPage map;
-    if (!map.parse(body))
-        throw std::runtime_error("not a map-layout page (the stream sizes don't add up; model pages use another codec)");
+    if (!map.parse(body)) {
+        pages::ModelPage model;
+        if (!model.parse(body)) throw std::runtime_error("the page body is in neither the map nor the model layout");
+        std::printf("page (%u, %u) level %u: %zu bytes, model layout%s\n", x, y, level, body.size(),
+                    model.stream_size[4] ? ", with a mask" : "");
+        return write_model_page(a, model, out);
+    }
     std::printf("page (%u, %u) level %u: %zu bytes, mode %u%s\n", x, y, level, body.size(), map.mode,
                 map.has_mask ? ", with a 128x128 1-bit mask (not decoded)" : "");
-    std::string out = a.out.empty() ? "page_" + std::to_string(x) + "_" + std::to_string(y) + "_" + std::to_string(level) + ".png" : a.out;
     int last = a.has("--layers") ? 3 : 0;
     for (int layer = 0; layer <= last; ++layer) {
         if (map.stream_size[layer] == 0) continue;
@@ -157,11 +188,41 @@ int cmd_check(const Args& a) {
     if (a.positional.empty()) throw std::runtime_error(std::string("check needs <file.pages>\n\n") + USAGE);
     auto start = std::chrono::steady_clock::now();
     pages::PagesFile file(a.positional[0]);
-    size_t ok[4] = {}, total[4] = {}, other = 0;
+    size_t ok[4] = {}, total[4] = {}, model_pages = 0, other = 0;
     std::vector<std::string> failures;
     for (const auto& page : file.pages) {
         auto body = file.body(page);
+        auto where = [&](int layer) {
+            return "page (" + std::to_string(page.x) + ", " + std::to_string(page.y) + ") level " +
+                   std::to_string(page.level) + " " + pages::LAYERS[layer] + ": ";
+        };
         pages::MapPage map;
+        pages::ModelPage model;
+        if (!map.parse(body) && model.parse(body)) {
+            // DCT streams end on a byte boundary
+            ++model_pages;
+            for (int layer = 0; layer < 4; ++layer) {
+                if (model.stream_size[layer] == 0) continue;
+                ++total[layer];
+                try {
+                    size_t used = 0;
+                    const uint8_t* s = model.stream[layer];
+                    size_t n = model.stream_size[layer];
+                    int q = model.quality[layer];
+                    if (layer == 0 || (layer == 2 && !model.mono_specular)) dct::diffuse_rgb(s, n, q, &used);
+                    else if (layer == 1) dct::normal_xy(s, n, q, &used);
+                    else dct::gray(s, n, q, layer == 3 ? 32 : 128, &used);
+                    size_t slack = n * 8 - used;
+                    if (slack < 8)
+                        ++ok[layer];
+                    else
+                        failures.push_back(where(layer) + std::to_string(slack) + " bits left over");
+                } catch (const std::exception& e) {
+                    failures.push_back(where(layer) + e.what());
+                }
+            }
+            continue;
+        }
         if (!map.parse(body)) {
             ++other;
             continue;
@@ -169,8 +230,6 @@ int cmd_check(const Args& a) {
         for (int layer = 0; layer < 4; ++layer) {
             if (map.stream_size[layer] == 0) continue;
             ++total[layer];
-            std::string where = "page (" + std::to_string(page.x) + ", " + std::to_string(page.y) + ") level " +
-                                std::to_string(page.level) + " " + pages::LAYERS[layer] + ": ";
             try {
                 int px = pages::MapPage::layer_size(layer);
                 jxr::Decoder d(map.stream[layer], map.stream_size[layer], jxr::Rules::Rage(), px, px);
@@ -179,9 +238,9 @@ int cmd_check(const Args& a) {
                 if (slack >= 0 && slack < 16)
                     ++ok[layer];
                 else
-                    failures.push_back(where + std::to_string(slack) + " bits left over");
+                    failures.push_back(where(layer) + std::to_string(slack) + " bits left over");
             } catch (const std::exception& e) {
-                failures.push_back(where + e.what());
+                failures.push_back(where(layer) + e.what());
             }
         }
     }
@@ -189,7 +248,8 @@ int cmd_check(const Args& a) {
     std::printf("%zu pages in %.1fs\n", file.pages.size(), secs);
     for (int layer = 0; layer < 4; ++layer)
         std::printf("  %-8s %zu of %zu streams parse exactly\n", pages::LAYERS[layer], ok[layer], total[layer]);
-    if (other) std::printf("  %zu pages are not in the map layout (model pages use another codec)\n", other);
+    if (model_pages) std::printf("  %zu pages are in the model (DCT) layout\n", model_pages);
+    if (other) std::printf("  %zu pages are in neither layout\n", other);
     for (size_t i = 0; i < failures.size() && i < 10; ++i) std::printf("  failed: %s\n", failures[i].c_str());
     if (failures.size() > 10) std::printf("  ... and %zu more\n", failures.size() - 10);
     return failures.empty() ? 0 : 1;

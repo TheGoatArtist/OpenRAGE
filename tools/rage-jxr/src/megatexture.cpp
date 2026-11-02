@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 
+#include "dct.h"
 #include "entropy.h"
 #include "transform.h"
 
@@ -13,7 +14,12 @@ namespace pages {
 
 bool decode_diffuse(const std::vector<uint8_t>& body, std::vector<uint8_t>& rgb) {
     MapPage map;
-    if (!map.parse(body) || map.stream_size[0] == 0) return false;
+    if (!map.parse(body) || map.stream_size[0] == 0) {
+        ModelPage model;
+        if (!model.parse(body) || model.stream_size[0] == 0) return false;
+        rgb = dct::diffuse_rgb(model.stream[0], model.stream_size[0], model.quality[0]);
+        return true;
+    }
     jxr::Decoder d(map.stream[0], map.stream_size[0], jxr::Rules::Rage(), PAGE_SIZE, PAGE_SIZE);
     auto mbs = d.decode();
     if (d.cf != jxr::ColorFormat::Yuv444) return false;
@@ -83,7 +89,7 @@ LevelImage assemble_diffuse(PagesFile& file, uint32_t level) {
         }
     }
     if (out.decoded == 0 && out.filled == 0)
-        throw std::runtime_error(not_map ? "not a map megatexture (its pages use another codec)"
+        throw std::runtime_error(not_map ? "its pages are in neither the map nor the model layout"
                                          : "no pages found for level " + std::to_string(level));
     return out;
 }
