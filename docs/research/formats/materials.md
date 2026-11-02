@@ -58,7 +58,11 @@ Program names refer to the archive's `renderProg` entries (479 of them).
   use it each have their own value.
 - **Land materials name their map's page file.** 69 materials have `landPageFile` (such as
   `"dusty8"` or `"bash_tv"`), `landModelFile` and `landDimensions`. These are the terrain
-  materials for maps with their own `.pages` file.
+  materials for maps with their own `.pages` file. Maps also keep land materials next to their
+  geometry, outside `generated/decls/material/` (for example `maps/game/tracks/dusty8/mega.decl`,
+  `meganospec.decl` and `megatrans.decl`, which all name `dusty8`). A surface with a land material
+  carries texture coordinates that are positions in that megatexture directly, as fractions of its
+  whole texture (verified by drawing dusty8; see [bmodel.md](bmodel.md)).
 - **Only 822 materials use ordinary textures**, mostly as `transmap` (605), plus editor images,
   light projections and falloffs, scanline overlays and environment maps. These can already be
   loaded; see [bimage.md](bimage.md).
