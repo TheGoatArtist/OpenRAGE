@@ -38,6 +38,7 @@ research/
 - [formats/materials.md](formats/materials.md): material declarations and how they point into the megatextures
 - [formats/bmodel.md](formats/bmodel.md): the `.bmodel` static model and map geometry format, and how its surfaces reach the megatextures
 - [formats/maps.md](formats/maps.md): a map's world BSP (`.proc`) and entities (`.entities`)
+- [formats/bcm.md](formats/bcm.md): the `.bcm` collision model format
 
 ## First targets
 

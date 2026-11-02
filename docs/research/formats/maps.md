@@ -21,7 +21,7 @@ A map such as `maps/game/tracks/dusty8` is spread over several archive entries:
 | `maps/game/<…>/<map>/_combo/_area<N>.bmodel` | The geometry of area N (see [bmodel.md](bmodel.md)) |
 | `maps/game/<…>/<map>/_combo/megamodel_*.bmodel`, `sky.bmodel` | Movers and other dynamic pieces, and the sky |
 | `maps/game/<…>/<map>/_combo/<map>_occlusion.bmodel` | Probably occlusion geometry; a different structure |
-| `maps/game/<…>/<map>/_combo/world.bcm`, `<map>/*.bcm` | Collision models (not studied yet) |
+| `maps/game/<…>/<map>/_combo/world.bcm`, `<map>/*.bcm` | Collision models (see [bcm.md](bcm.md)) |
 | `maps/game/<…>/<map>.entities` | The map's entities |
 
 ### `.proc`: the world BSP
@@ -107,7 +107,7 @@ Each map also has `<map>.ambient`, `<map>.sbsp`, `<map>.script` and `<map>.bfoli
 
 ## Open questions
 
-- The `.bcm` collision format, which the engine needs for walking and driving.
+- `streamed.resources`, from which the two open-world maps stream their world collision.
 - How RAGE decides visibility without portals (perhaps the occlusion models).
 - The other map files above.
 - How `layers` decide which entities exist in a given race or mission.
