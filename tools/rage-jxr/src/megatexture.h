@@ -28,4 +28,7 @@ struct LevelImage {
 // such level or no page decodes.
 LevelImage assemble_diffuse(PagesFile& file, uint32_t level);
 
+// The same for a rectangle of that level, in texels (page x's payload is texels 120x to 120x+119).
+LevelImage assemble_diffuse(PagesFile& file, uint32_t level, int x, int y, int width, int height);
+
 }  // namespace pages

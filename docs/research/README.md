@@ -35,6 +35,8 @@ research/
 - [formats/resources-archive.md](formats/resources-archive.md): the `.resources` / `.patch` archive format
 - [formats/megatexture-pages.md](formats/megatexture-pages.md): the `.pages` megatexture page tree and the `.pageLines` index
 - [formats/bimage.md](formats/bimage.md): the `.bimage` texture format, compared with Doom 3 BFG
+- [formats/materials.md](formats/materials.md): material declarations and how they point into the megatextures
+- [formats/bmodel.md](formats/bmodel.md): the `.bmodel` static model format and how its surfaces reach `_vmtr`
 
 ## First targets
 

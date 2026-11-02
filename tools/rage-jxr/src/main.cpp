@@ -31,9 +31,10 @@ const char* USAGE =
     "      --layers   also write the normal, specular and power layers, and a model page's mask\n"
     "                 (some scales not yet confirmed)\n"
     "      --payload  crop to the 120x120 payload, without the 4-texel border\n"
-    "  rage-jxr level <file.pages> <level> [-o out.png]\n"
-    "      Decode the diffuse layer of a whole level into one image (120 texels per page).\n"
-    "      Pages the file leaves out are filled from the nearest coarser page.\n"
+    "  rage-jxr level <file.pages> <level> [<x> <y> <width> <height>] [-o out.png]\n"
+    "      Decode the diffuse layer of a whole level, or a rectangle of it in texels, into one\n"
+    "      image (120 texels per page). Pages the file leaves out are filled from the nearest\n"
+    "      coarser page.\n"
     "  rage-jxr check <file.pages>\n"
     "      Parse every stream of every page and report whether each ends exactly at its end.\n"
     "  rage-jxr jxr <file.jxr> <out.ppm|out.png> [--rage] [--dump]\n"
@@ -171,11 +172,18 @@ int cmd_decode(const Args& a) {
 }
 
 int cmd_level(const Args& a) {
-    if (a.positional.size() != 2) throw std::runtime_error(std::string("level needs <file.pages> <level>\n\n") + USAGE);
+    if (a.positional.size() != 2 && a.positional.size() != 6)
+        throw std::runtime_error(std::string("level needs <file.pages> <level> [<x> <y> <width> <height>]\n\n") + USAGE);
     uint32_t level = num(a.positional[1], "level");
     auto start = std::chrono::steady_clock::now();
     pages::PagesFile file(a.positional[0]);
-    pages::LevelImage img = pages::assemble_diffuse(file, level);
+    pages::LevelImage img =
+        a.positional.size() == 2
+            ? pages::assemble_diffuse(file, level)
+            : pages::assemble_diffuse(file, level, static_cast<int>(num(a.positional[2], "x")),
+                                      static_cast<int>(num(a.positional[3], "y")),
+                                      static_cast<int>(num(a.positional[4], "width")),
+                                      static_cast<int>(num(a.positional[5], "height")));
     double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
     std::string out = a.out.empty() ? "level_" + std::to_string(level) + ".png" : a.out;
     if (!write_png(out, img.width, img.height, 3, img.rgb)) throw std::runtime_error(out + ": cannot write");

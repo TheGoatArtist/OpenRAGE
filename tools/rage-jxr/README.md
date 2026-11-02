@@ -53,6 +53,14 @@ rage-jxr level "/path/to/RAGE/virtualtextures/wasteland1.pages" 7 -o wasteland1_
 
 `_vmtr.pages` has 10 levels, so its level 6 is 960×960.
 
+Add `<x> <y> <width> <height>` (in texels at that level) to decode only a rectangle, such as one
+material's texture (see [docs/research/formats/bmodel.md](../../docs/research/formats/bmodel.md)
+for how materials map into `_vmtr`):
+
+```bash
+rage-jxr level "/path/to/RAGE/virtualtextures/_vmtr.pages" 1 0 12960 240 240 -o keycard.png
+```
+
 Check that every stream of every page decodes, ending exactly where its stream ends:
 
 ```bash
