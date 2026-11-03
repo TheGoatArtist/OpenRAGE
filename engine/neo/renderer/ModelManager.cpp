@@ -361,7 +361,7 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 					sourceTimeStamp = fileSystem->GetTimestamp( canonical );
 				}
 
-				if( model->SupportsBinaryModel() && binaryLoadRenderModels.GetBool() )
+				if( model->SupportsBinaryModel() && binaryLoadRenderModels.GetBool() && extension.Icmp( "bmodel" ) != 0 )
 				{
 					idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
 					model->PurgeModel();
@@ -418,7 +418,8 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 	// RB: Wavefront OBJ
 	else if( ( extension.Icmp( "obj" ) == 0 )
 			 || ( extension.Icmp( "ase" ) == 0 ) || ( extension.Icmp( "lwo" ) == 0 )
-			 || ( extension.Icmp( "flt" ) == 0 ) || ( extension.Icmp( "ma" ) == 0 ) )
+			 || ( extension.Icmp( "flt" ) == 0 ) || ( extension.Icmp( "ma" ) == 0 )
+			 || ( extension.Icmp( "bmodel" ) == 0 ) )	// OpenRAGE: RAGE static models
 	{
 		model = new( TAG_MODEL ) idRenderModelStatic;
 	}
@@ -466,9 +467,13 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 			sourceTimeStamp = fileSystem->GetTimestamp( canonical );
 		}
 
-		idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
+		// OpenRAGE: RAGE models are never cached as binary models, so no converted game data
+		// is written to disk; they are always read from the player's RAGE install
+		const bool isRageModel = ( extension.Icmp( "bmodel" ) == 0 );
 
-		if( !model->SupportsBinaryModel() || !binaryLoadRenderModels.GetBool() )
+		idFileLocal file( isRageModel ? NULL : fileSystem->OpenFileReadMemory( generatedFileName ) );
+
+		if( !model->SupportsBinaryModel() || !binaryLoadRenderModels.GetBool() || isRageModel )
 		{
 			model->InitFromFile( canonical, options );
 		}

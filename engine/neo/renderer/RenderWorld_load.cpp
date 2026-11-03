@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "RenderCommon.h"
+#include "Model_local.h"	// OpenRAGE: RAGE map areas are idRenderModelStatic
 
 
 /*
@@ -753,6 +754,36 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 	generatedFileName.Insert( "generated/", 0 );
 	generatedFileName.SetFileExtension( "bproc" );
 
+	// OpenRAGE: a RAGE map has no <map>.proc. Its world BSP is <map>/_combo/<map>.proc
+	// (mapProcFile005, no geometry) and each area's geometry is <map>/_combo/_area<N>.bmodel.
+	// See docs/research/formats/maps.md.
+	bool isRageMap = false;
+	idStrStatic< MAX_OSPATH > rageComboFolder;
+	{
+		idFileLocal doomProc( fileSystem->OpenFileRead( filename ) );
+		if( doomProc == NULL )
+		{
+			idStrStatic< MAX_OSPATH > mapBase = name;
+			mapBase.StripFileExtension();
+			idStrStatic< MAX_OSPATH > shortName = mapBase;
+			shortName.StripPath();
+
+			rageComboFolder = mapBase;
+			rageComboFolder.Append( "/_combo/" );
+			idStrStatic< MAX_OSPATH > rageProc = rageComboFolder;
+			rageProc.Append( shortName );
+			rageProc.Append( "." PROC_FILE_EXT );
+
+			idFileLocal rageProcFile( fileSystem->OpenFileRead( rageProc ) );
+			if( rageProcFile != NULL )
+			{
+				isRageMap = true;
+				filename = rageProc;
+				common->Printf( "Loading RAGE map %s\n", rageProc.c_str() );
+			}
+		}
+	}
+
 	// if we are reloading the same map, check the timestamp
 	// and try to skip all the work
 	ID_TIME_T currentTimeStamp = fileSystem->GetTimestamp( filename );
@@ -783,7 +814,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 	static const unsigned int BPROC_MAGIC_BFG = ( 'P' << 24 ) | ( 'R' << 16 ) | ( 'O' << 8 ) | BPROC_VERSION_BFG;
 	static const unsigned int BPROC_MAGIC = ( 'P' << 24 ) | ( 'R' << 16 ) | ( 'O' << 8 ) | BPROC_VERSION;
 	bool loaded = false;
-	idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
+	// OpenRAGE: RAGE maps are never cached, so no converted game data is written to disk
+	idFileLocal file( isRageMap ? NULL : fileSystem->OpenFileReadMemory( generatedFileName ) );
 	if( file != NULL )
 	{
 		int numEntries = 0;
@@ -853,15 +885,16 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		mapName = name;
 		mapTimeStamp = currentTimeStamp;
 
-		if( !src->ReadToken( &token ) || token.Icmp( PROC_FILE_ID ) )
+		const char* procFileId = isRageMap ? "mapProcFile005" : PROC_FILE_ID;	// OpenRAGE
+		if( !src->ReadToken( &token ) || token.Icmp( procFileId ) )
 		{
-			common->Printf( "idRenderWorldLocal::InitFromMap: bad id '%s' instead of '%s'\n", token.c_str(), PROC_FILE_ID );
+			common->Printf( "idRenderWorldLocal::InitFromMap: bad id '%s' instead of '%s'\n", token.c_str(), procFileId );
 			delete src;
 			return false;
 		}
 
 		int numEntries = 0;
-		idFileLocal outputFile( fileSystem->OpenFileWrite( generatedFileName, "fs_basepath" ) );
+		idFileLocal outputFile( isRageMap ? NULL : fileSystem->OpenFileWrite( generatedFileName, "fs_basepath" ) );
 		if( outputFile != NULL )
 		{
 			int magic = BPROC_MAGIC;
@@ -935,6 +968,57 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			outputFile->WriteBig( numEntries );
 		}
 
+		// OpenRAGE: build each area's model from its own .bmodel
+		if( isRageMap )
+		{
+			int numSurfaces = 0;
+			int numVerts = 0;
+			int numIndexes = 0;
+			int numMissing = 0;
+			for( int i = 0; i < numPortalAreas; i++ )
+			{
+				common->UpdateLevelLoadPacifier();
+
+				idStrStatic< MAX_OSPATH > areaName;
+				areaName.Format( "_area%i", i );
+				idStrStatic< MAX_OSPATH > areaFile = rageComboFolder;
+				areaFile.Append( areaName );
+				areaFile.Append( ".bmodel" );
+
+				idRenderModelStatic* model = static_cast<idRenderModelStatic*>( renderModelManager->AllocModel() );
+				if( !model->InitFromBModel( areaName, areaFile ) )
+				{
+					numMissing++;
+				}
+
+				for( int j = 0; j < model->NumSurfaces(); j++ )
+				{
+					const srfTriangles_t* tri = model->Surface( j )->geometry;
+					numSurfaces++;
+					numVerts += tri->numVerts;
+					numIndexes += tri->numIndexes;
+				}
+
+				renderModelManager->AddModel( model );
+				localModels.Append( model );
+			}
+
+			// The geometry goes to static GPU buffers of a fixed size; say how much of them it takes
+			const int64 vertexBytes = ( int64 )numVerts * sizeof( idDrawVert );
+			const int64 indexBytes = ( int64 )numIndexes * sizeof( triIndex_t );
+			common->Printf( "RAGE map: %i areas, %i surfaces, %i vertexes, %i triangles\n", numPortalAreas, numSurfaces, numVerts, numIndexes / 3 );
+			common->Printf( "RAGE map: %.1f MB of %.1f MB static vertex memory, %.1f MB of %.1f MB static index memory\n",
+							vertexBytes / ( 1024.0 * 1024.0 ), STATIC_VERTEX_MEMORY / ( 1024.0 * 1024.0 ),
+							indexBytes / ( 1024.0 * 1024.0 ), STATIC_INDEX_MEMORY / ( 1024.0 * 1024.0 ) );
+			if( vertexBytes > STATIC_VERTEX_MEMORY * 3 / 4 || indexBytes > STATIC_INDEX_MEMORY * 3 / 4 )
+			{
+				common->Warning( "RAGE map uses most of the static GPU buffers; it may not fit with the rest of the level" );
+			}
+			if( numMissing > 0 )
+			{
+				common->Warning( "RAGE map: %i of %i area models couldn't be loaded", numMissing, numPortalAreas );
+			}
+		}
 	}
 
 

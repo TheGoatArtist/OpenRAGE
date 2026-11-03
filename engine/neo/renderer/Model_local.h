@@ -122,6 +122,8 @@ public:
 	bool						LoadLWO( const char* fileName, ID_TIME_T* sourceTimeStamp );
 	bool						LoadMA( const char* filename, ID_TIME_T* sourceTimeStamp );
 	bool						LoadOBJ( const char* fileName, ID_TIME_T* sourceTimeStamp ); // RB
+	bool						LoadBModel( const char* fileName, ID_TIME_T* sourceTimeStamp ); // OpenRAGE: RAGE .bmodel
+	bool						InitFromBModel( const char* modelName, const char* fileName ); // OpenRAGE: a map area from a RAGE .bmodel
 
 	bool						ConvertOBJToModelSurfaces( const objModel_t* obj ); // RB
 	bool						ConvertASEToModelSurfaces( const struct aseModel_s* ase );
