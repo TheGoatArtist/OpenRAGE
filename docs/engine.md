@@ -78,6 +78,62 @@ The goal is for the engine to start as OpenRAGE using only files from this repos
 Each change needs a check on a machine with the Vulkan SDK: start `OpenRAGE` with
 `+set fs_basepath <path to engine>` and no Doom 3 BFG install, then note where startup stops.
 
+## Loading RAGE geometry
+
+The engine reads RAGE's archives straight from your own install and can load a RAGE map's
+world geometry. Textures come later (they're megatextures), so surfaces don't have their real
+look yet.
+
+1. Point the engine at your RAGE install (the folder that holds `base/`), on the command line or
+   in the console. It's saved in your config.
+
+   ```bash
+   ./OpenRAGE +set fs_ragePath "/path/to/steamapps/common/RAGE"
+   ```
+
+2. In the console, `rageMaps` lists the maps and `rageList <filter>` lists archive entries.
+3. Load a map with `map <name>`, for example `map game/tracks/dusty8`, then use `noclip` to fly
+   around. There's no collision with RAGE's geometry yet.
+
+### What happens
+
+| Step | Where |
+| --- | --- |
+| `base/gameresources_sp_01.patch` and `base/gameresources.resources` are mounted, patch first, after every normal search path, so loose files and mods override them | `engine/neo/framework/FileSystem.cpp` |
+| An entry is unpacked into memory when it's opened (raw deflate without a final block) | `engine/neo/rage/RageArchive.cpp` |
+| `maps/<map>/_combo/<map>.proc` (`mapProcFile005`) gives the BSP nodes and the number of areas | `engine/neo/renderer/RenderWorld_load.cpp` |
+| Each area's `_area<N>.bmodel` becomes that area's model: all six vertex formats, strips and lists, material ranges | `engine/neo/rage/RageBModel.cpp`, `engine/neo/renderer/Model_bmodel.cpp` |
+| The geometry is uploaded once, at level load, to the engine's static GPU vertex and index buffers. The console prints how much of them the map uses | `idRenderModelManagerLocal::EndLevelLoad` |
+| The game gets a stand-in `.map`: a worldspawn with a floor slab under the map, and a player start at the first `idPlayerStart` in `<map>.entities` | `engine/neo/d3xp/RageMap.cpp` |
+
+Any `.bmodel` also loads as an ordinary model, so other code can use RAGE models by name.
+
+Nothing converted from the game is written to disk: RAGE models skip the engine's binary model
+cache, and RAGE maps don't get a `.bproc` file.
+
+### Not done yet
+
+- **Textures.** Surfaces use RAGE's material names, which don't exist as engine materials yet, so
+  they draw with the default texture. `r_rageMaterial <material>` draws everything with one
+  material instead.
+- **The rest of the map:** `megamodel_*.bmodel` (movers and doors), `sky.bmodel`, the occlusion
+  model, every entity except the player start, and collision (`.bcm`).
+- **Very large maps.** Doom 3 limits coordinates to ±131,072 units. wasteland1 (up to 152,232)
+  and wasteland2 (up to 196,816) go past that.
+- **Static GPU buffer size.** About 124 MB each for vertexes and indexes. The biggest maps may
+  not fit; watch the numbers the console prints when a map loads.
+- **Texture coordinate precision.** The engine stores texture coordinates as half floats, which is
+  too coarse for positions in a whole map's megatexture. Megatexture drawing will need full
+  precision.
+
+### Testing
+
+`rage_selftest` checks the archive, `.bmodel` and `.entities` readers against small files it
+builds itself from the layouts in [research/formats/](research/formats/). It needs no game data
+and runs with `ctest` from the build folder. The readers haven't been run against real RAGE files
+in this repository's test setup yet, so the first run on a real install is the real check: if a
+map doesn't load, the console says which file and why.
+
 ## Updating from upstream RBDOOM-3-BFG
 
 `engine/` keeps upstream's bytes and line endings (the root `.gitattributes` marks it `-text`), so
