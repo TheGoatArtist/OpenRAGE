@@ -48,6 +48,9 @@ ones need it too.
 - **Megatexture viewer.** The `megatextureViewer` console command opens a window that shows RAGE's
   megatextures from your own install, decoded with the `ragejxr` library from
   [tools/rage-jxr](../tools/rage-jxr/README.md). See [Megatexture viewer](#megatexture-viewer).
+- **RAGE archives and map geometry.** With `fs_ragePath` set, the engine reads RAGE's archives from
+  your install and can load a RAGE map's world geometry. See
+  [Loading RAGE geometry](#loading-rage-geometry).
 
 ## Megatexture viewer
 
@@ -70,7 +73,8 @@ Or run `megatextureViewer` in the console, with or without a file.
   nothing is written to disk.
 - The last file opened is kept in the `mtv_lastFile` setting.
 
-The code is in [engine/neo/tools/imgui/megatexture/](../engine/neo/tools/imgui/megatexture/).
+Checked on Linux with Vulkan (CachyOS): the viewer opens on `wasteland1.pages` and shows it on
+screen. The code is in [engine/neo/tools/imgui/megatexture/](../engine/neo/tools/imgui/megatexture/).
 
 ## Artwork
 
@@ -156,7 +160,12 @@ cache, and RAGE maps don't get a `.bproc` file.
 
 `rage_selftest` checks the archive, `.bmodel` and `.entities` readers against small files it
 builds itself from the layouts in [research/formats/](research/formats/). It needs no game data
-and runs with `ctest` from the build folder. The readers haven't been run against real RAGE files
+and runs with `ctest` from the build folder.
+
+`rage_check <RAGE folder> [--unpack]` runs the same readers over a real install, mounting the
+archives the way `fs_ragePath` does. It parses every `.bmodel` and `.entities` entry, and checks
+every map's `.proc` and that all of the map's area models are there. With `--unpack` it also
+unpacks every entry and checks its size. It prints counts and failures only. The readers haven't been run against real RAGE files
 in this repository's test setup yet, so the first run on a real install is the real check: if a
 map doesn't load, the console says which file and why.
 

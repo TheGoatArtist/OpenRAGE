@@ -1526,4 +1526,9 @@ if(OPENRAGE_TESTS)
 	target_link_libraries(rage_selftest ${ZLIB_LIBRARY})
 	enable_testing()
 	add_test(NAME rage_selftest COMMAND rage_selftest ${CMAKE_CURRENT_BINARY_DIR})
+
+	# rage_check runs the same readers over a real RAGE install, so it isn't a ctest test:
+	# rage_check <RAGE folder> [--unpack]
+	add_executable(rage_check rage/test/rage_check.cpp ${RAGE_SOURCES} ${ZLIB_SOURCES})
+	target_link_libraries(rage_check ${ZLIB_LIBRARY})
 endif()
