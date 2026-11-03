@@ -14,8 +14,9 @@ OpenRAGE is **not a remake**. The original game stays at the center of everythin
 
 **Early engine work.** The file-format research is under [docs/research/](docs/research/). The
 engine lives in [engine/](engine/): it's built from [RBDOOM-3-BFG](https://github.com/RobertBeckebans/RBDOOM-3-BFG),
-which is based on id Software's Doom 3 BFG Edition source code. It doesn't run RAGE yet. The
-phases under [docs/](docs/) are ideas, not a committed roadmap.
+which is based on id Software's Doom 3 BFG Edition source code. It starts as OpenRAGE but doesn't
+run RAGE yet. See [docs/engine.md](docs/engine.md) for how to build it and what's being worked on.
+The phases under [docs/](docs/) are ideas, not a committed roadmap.
 
 ## Core philosophy
 
