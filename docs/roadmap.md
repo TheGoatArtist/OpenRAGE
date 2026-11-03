@@ -33,7 +33,8 @@ Each step is small, works on Windows and Linux, and ends with something visible.
    each level, their sizes, and where `.pageLines` is stale. Uses
    [research/formats/megatexture-pages.md](research/formats/megatexture-pages.md).
 6. **Megatexture pixels.** Once the page codec is decoded, show the real terrain. Streaming and
-   caching grow from here.
+   caching grow from here. First version: the engine's
+   [megatexture viewer](engine.md#megatexture-viewer) decodes and shows any region of a level.
 
 Steps 2–5 don't wait on unsolved research. Step 6 needs the page codec, which can be researched
 in parallel.

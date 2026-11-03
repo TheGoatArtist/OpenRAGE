@@ -68,8 +68,10 @@ None of these exist in `engine/` yet:
 - **Partial texture uploads.** `idImage::SubImageUpload` is an empty stub in the NVRHI back end
   (`renderer/NVRHI/Image_NVRHI.cpp`).
 - **Streaming of any kind.** Images load whole, in batches (`idImageManager::LoadDeferredImages`).
-- **The page decoder.** It exists as the `ragejxr` library in
-  [tools/rage-jxr](../../../tools/rage-jxr/README.md), but `engine/` doesn't link it yet.
+- **Decoding pages for rendering.** The `ragejxr` library from
+  [tools/rage-jxr](../../../tools/rage-jxr/README.md) is linked into the engine, but only the
+  [megatexture viewer](../../engine.md#megatexture-viewer) uses it, to decode whole regions for
+  display in its window.
 - **Virtual texturing itself:** a feedback pass that records which pages a frame needs, a page
   table (indirection texture) and the shader code that looks pages up in it, physical cache
   textures with an allocator, and a page reader that uses `.pageLines`.

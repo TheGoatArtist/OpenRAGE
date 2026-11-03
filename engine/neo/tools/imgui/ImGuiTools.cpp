@@ -35,6 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "afeditor/AfEditor.h"
 #include "lighteditor/LightEditor.h"
+#include "megatexture/MegatextureViewer.h" // OpenRAGE
 
 
 extern idCVar g_editEntityMode;
@@ -76,6 +77,12 @@ void DrawToolWindows()
 	else if( AfEditor::Instance().IsShown() )
 	{
 		AfEditor::Instance().Draw();
+	}
+
+	// OpenRAGE: the megatexture viewer can be open alongside the editors
+	if( MegatextureViewer::Instance().IsShown() )
+	{
+		MegatextureViewer::Instance().Draw();
 	}
 }
 

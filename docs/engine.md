@@ -45,6 +45,32 @@ ones need it too.
   while the engine starts instead.
 - **Classic Doom 1 and 2 are off by default.** `-DDOOM_CLASSIC=ON` turns them back on.
 - **A missing default font isn't fatal.** Doom 3 BFG's default font used to be required to start.
+- **Megatexture viewer.** The `megatextureViewer` console command opens a window that shows RAGE's
+  megatextures from your own install, decoded with the `ragejxr` library from
+  [tools/rage-jxr](../tools/rage-jxr/README.md). See [Megatexture viewer](#megatexture-viewer).
+
+## Megatexture viewer
+
+The first part of RAGE the engine can show. Start the engine with the viewer open on a
+megatexture:
+
+```bash
+./OpenRAGE +set fs_basepath <path to engine> +megatextureViewer "<RAGE folder>/virtualtextures/wasteland1.pages"
+```
+
+Or run `megatextureViewer` in the console, with or without a file.
+
+- The left side shows the whole megatexture at low detail. Click a spot to look at it.
+- **Level** picks the level to decode (0 is the most detailed), and **View** picks the size of the
+  region: 960, 1920 or 3840 texels square. Pages the file leaves out are filled from the nearest
+  coarser page, the same way `rage-jxr level` does it.
+- **Actual size** shows the region texel for texel. Otherwise it's scaled to fit the window.
+- It shows the diffuse layer, for map megatextures and `_vmtr.pages` alike.
+- Decoding runs on a worker thread, so the window stays responsive. Decoded pages stay in memory;
+  nothing is written to disk.
+- The last file opened is kept in the `mtv_lastFile` setting.
+
+The code is in [engine/neo/tools/imgui/megatexture/](../engine/neo/tools/imgui/megatexture/).
 
 ## Artwork
 

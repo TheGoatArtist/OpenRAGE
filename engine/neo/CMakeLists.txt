@@ -449,6 +449,10 @@ add_definitions(-DUSE_NVRHI)
 set(SHADERMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/ShaderMake)
 add_subdirectory(${SHADERMAKE_DIR})
 
+# OpenRAGE: the megatexture page decoder in tools/rage-jxr, linked as the ragejxr library.
+# EXCLUDE_FROM_ALL leaves its command-line program out of the engine build.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../tools/rage-jxr ${CMAKE_CURRENT_BINARY_DIR}/rage-jxr EXCLUDE_FROM_ALL)
+
 if(USE_DX12)
 	# SRS - ShaderMake now finds dxc for DXIL when required
 	set(USE_DXIL_ON_DX12 TRUE CACHE BOOL "Use DXC to compile DXIL shaders on DX12 - otherwise FXC and DXBC")
@@ -1069,6 +1073,7 @@ macro(AddSubdirectory dirName)
 endmacro()
 
 AddSubdirectory( tools/imgui/afeditor )
+AddSubdirectory( tools/imgui/megatexture ) # OpenRAGE
 
 if(DOOM_CLASSIC)
 	add_definitions(-DUSE_DOOMCLASSIC)
@@ -1496,6 +1501,7 @@ endif()
 # needs to come after nvrhi_d3d11 etc. for link order
 target_link_libraries(${APP_NAME} nvrhi)
 target_link_libraries(${APP_NAME} ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
+target_link_libraries(${APP_NAME} ragejxr) # OpenRAGE
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
