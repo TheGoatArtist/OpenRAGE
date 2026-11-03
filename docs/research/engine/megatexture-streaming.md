@@ -103,8 +103,15 @@ and budgets are left open until id's papers have been read.
 - **Cache format.** Matching RAGE (YCoCg-DXT5 and DXT5 normal maps) keeps memory use and the look
   the same. BC7 or uncompressed caches could look better and cost more memory.
 - **Where decoding runs.** RAGE entropy-decodes on the CPU and runs the transforms on the GPU.
-  Whether OpenRAGE needs a GPU stage depends on how fast `ragejxr` is on a CPU: measure pages per
-  second per core first (`rage-jxr level` prints its decode time).
+  Whether OpenRAGE needs a GPU stage depends on how fast `ragejxr` is on a CPU. First measurements,
+  on one core of an Intel Core i7-11700K (`rage-jxr` is single-threaded):
+  - `rage-jxr level` on `wasteland1.pages` fully decodes about 1,500 to 1,800 diffuse layers per
+    second (599 pages at level 5, 2,350 at level 4). Opening and indexing the 1.1 GB file takes
+    about 0.2 s more, once.
+  - `rage-jxr check` parses all four layers' streams of `scientist.pages` (3,271 pages) at about
+    4,000 pages per second.
+  - At 60 frames per second, that's 25 to 30 diffuse pages per frame per core. Still to time: all
+    four layers decoded in full, and the DXT re-encode.
 
 ## Sources still to read
 
