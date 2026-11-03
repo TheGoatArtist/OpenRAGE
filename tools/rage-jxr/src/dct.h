@@ -13,8 +13,12 @@ namespace dct {
 // std::runtime_error on an invalid code or when the stream runs out. `bits_used`, when given,
 // receives the number of bits read, for checking that a stream ends where it should.
 
-// Diffuse, and colour specular: YCoCg 4:2:0, returned as 128x128 RGB.
+// Diffuse: YCoCg 4:2:0 with Co and Cg at half scale around 64, returned as 128x128 RGB.
 std::vector<uint8_t> diffuse_rgb(const uint8_t* data, size_t size, int quality, size_t* bits_used = nullptr);
+// Colour specular: coded like the diffuse layer, but with Co and Cg at half scale around 0.
+std::vector<uint8_t> specular_rgb(const uint8_t* data, size_t size, int quality, size_t* bits_used = nullptr);
+// Either: Co and Cg at half scale around `chroma_center`.
+std::vector<uint8_t> ycocg_rgb(const uint8_t* data, size_t size, int quality, float chroma_center, size_t* bits_used = nullptr);
 // Normal map: 128x128, two values per texel (X, Y) as the game exports them.
 std::vector<uint8_t> normal_xy(const uint8_t* data, size_t size, int quality, size_t* bits_used = nullptr);
 // One channel, `side` x `side`: the specular layer (128) or the power layer (32).

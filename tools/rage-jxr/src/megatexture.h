@@ -17,6 +17,14 @@ constexpr int PAGE_PAYLOAD = PAGE_SIZE - 2 * PAGE_BORDER;
 // model pages (_vmtr, DCT). Returns false when the body is in neither. Throws if a stream is damaged.
 bool decode_diffuse(const std::vector<uint8_t>& body, std::vector<uint8_t>& rgb);
 
+// The other layers of a model page (_vmtr), laid out like the textures the game exports
+// ("Ground truth with vt_export" in the format notes). `normal` is 128x128 RGBA of power, normal Y,
+// 0, normal X, the 32x32 power layer scaled up 4 times; `specular` is 128x128 RGBA of specular
+// RGB (grey for a one-channel layer) and the mask, 255 where the page has none. A layer the page
+// leaves out is flat (normal 128, 128) or 0. Returns false when the body isn't a model page.
+// Throws if a stream is damaged.
+bool decode_model_layers(const std::vector<uint8_t>& body, std::vector<uint8_t>& normal, std::vector<uint8_t>& specular);
+
 struct LevelImage {
     int width = 0, height = 0;  // in texels: 120 per page
     std::vector<uint8_t> rgb;

@@ -29,6 +29,34 @@ bool decode_diffuse(const std::vector<uint8_t>& body, std::vector<uint8_t>& rgb)
     return true;
 }
 
+bool decode_model_layers(const std::vector<uint8_t>& body, std::vector<uint8_t>& normal, std::vector<uint8_t>& specular) {
+    ModelPage model;
+    if (!model.parse(body)) return false;
+    constexpr int N = PAGE_SIZE * PAGE_SIZE;
+
+    std::vector<uint8_t> xy, power, spec, cover;
+    if (model.stream_size[1]) xy = dct::normal_xy(model.stream[1], model.stream_size[1], model.quality[1]);
+    if (model.stream_size[3]) power = dct::gray(model.stream[3], model.stream_size[3], model.quality[3], PAGE_SIZE / 4);
+    if (model.stream_size[2])
+        spec = model.mono_specular ? dct::gray(model.stream[2], model.stream_size[2], model.quality[2], PAGE_SIZE)
+                                   : dct::specular_rgb(model.stream[2], model.stream_size[2], model.quality[2]);
+    if (model.stream_size[4]) cover = dct::mask(model.stream[4], model.stream_size[4]);
+
+    normal.assign(static_cast<size_t>(N) * 4, 0);
+    specular.assign(static_cast<size_t>(N) * 4, 0);
+    for (int i = 0; i < N; ++i) {
+        const int x = i % PAGE_SIZE, y = i / PAGE_SIZE;
+        uint8_t* n = &normal[static_cast<size_t>(i) * 4];
+        n[0] = power.empty() ? 0 : power[(y / 4) * (PAGE_SIZE / 4) + x / 4];
+        n[1] = xy.empty() ? 128 : xy[i * 2 + 1];
+        n[3] = xy.empty() ? 128 : xy[i * 2 + 0];
+        uint8_t* s = &specular[static_cast<size_t>(i) * 4];
+        for (int c = 0; c < 3; ++c) s[c] = spec.empty() ? 0 : model.mono_specular ? spec[i] : spec[i * 3 + c];
+        s[3] = cover.empty() ? 255 : cover[i];
+    }
+    return true;
+}
+
 LevelImage assemble_diffuse(PagesFile& file, uint32_t level) {
     if (level >= file.levels)
         throw std::runtime_error("level " + std::to_string(level) + " is out of range (the file has " +

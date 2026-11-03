@@ -27,7 +27,9 @@ The program is `build/rage-jxr` on Linux and `build/Release/rage-jxr.exe` with V
 
 The decoder itself is the `ragejxr` library (everything in `src/` except `main.cpp` and
 `image_out.*`), which OpenRAGE's engine links with `add_subdirectory` on this folder. Its public
-headers are `megatexture.h` and `pages.h`.
+headers are `megatexture.h` and `pages.h`: `decode_diffuse` decodes a page's diffuse layer and
+`decode_model_layers` a model page's normal, specular, power and mask, in the layout of the textures
+the game exports.
 
 ## Use
 

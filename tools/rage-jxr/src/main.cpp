@@ -118,7 +118,7 @@ int write_model_page(const Args& a, const pages::ModelPage& m, const std::string
     if (m.mono_specular)
         save("specular", dct::gray(m.stream[2], m.stream_size[2], m.quality[2], 128), 128, 1, 4);
     else
-        save("specular", dct::diffuse_rgb(m.stream[2], m.stream_size[2], m.quality[2]), 128, 3, 4);
+        save("specular", dct::specular_rgb(m.stream[2], m.stream_size[2], m.quality[2]), 128, 3, 4);
     save("power", dct::gray(m.stream[3], m.stream_size[3], m.quality[3], 32), 32, 1, 1);
     if (m.stream_size[4]) save("mask", dct::mask(m.stream[4], m.stream_size[4]), 128, 1, 4);
     return 0;

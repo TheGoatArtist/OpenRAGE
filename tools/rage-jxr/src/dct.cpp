@@ -171,7 +171,7 @@ void finish(const jxr::Bits& b, size_t size, size_t* bits_used) {
 
 }  // namespace
 
-std::vector<uint8_t> diffuse_rgb(const uint8_t* data, size_t size, int quality, size_t* bits_used) {
+std::vector<uint8_t> ycocg_rgb(const uint8_t* data, size_t size, int quality, float chroma_center, size_t* bits_used) {
     jxr::Bits b(data, size);
     Channel y{&dc_luma(), &ac_luma(), quant(Q_LUMA, quality)};
     Channel c[2] = {{&dc_chroma(), &ac_chroma(), quant(Q_CHROMA, quality)},
@@ -193,18 +193,26 @@ std::vector<uint8_t> diffuse_rgb(const uint8_t* data, size_t size, int quality, 
         }
     finish(b, size, bits_used);
 
-    // Co and Cg are stored at half scale around 64
+    // Co and Cg are stored at half scale: around 64 in the diffuse layer, 0 in colour specular
     std::vector<uint8_t> rgb(128 * 128 * 3);
     for (int ty = 0; ty < 128; ++ty)
         for (int tx = 0; tx < 128; ++tx) {
             const int ci = (ty / 2) * 64 + tx / 2;
-            const float l = Y[ty * 128 + tx], co = 2 * (C[0][ci] - 64), cg = 2 * (C[1][ci] - 64);
+            const float l = Y[ty * 128 + tx], co = 2 * (C[0][ci] - chroma_center), cg = 2 * (C[1][ci] - chroma_center);
             uint8_t* o = &rgb[(ty * 128 + tx) * 3];
             o[0] = clamp8(l + co - cg);
             o[1] = clamp8(l + cg);
             o[2] = clamp8(l - co - cg);
         }
     return rgb;
+}
+
+std::vector<uint8_t> diffuse_rgb(const uint8_t* data, size_t size, int quality, size_t* bits_used) {
+    return ycocg_rgb(data, size, quality, 64, bits_used);
+}
+
+std::vector<uint8_t> specular_rgb(const uint8_t* data, size_t size, int quality, size_t* bits_used) {
+    return ycocg_rgb(data, size, quality, 0, bits_used);
 }
 
 std::vector<uint8_t> normal_xy(const uint8_t* data, size_t size, int quality, size_t* bits_used) {

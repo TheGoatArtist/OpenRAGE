@@ -14,8 +14,10 @@
   `.pageLines` (every file), and for the map page body layout (three files); **verified against
   the game's own export** for the model (`_vmtr`) page codec; **verified** for the map pages'
   entropy coding (every stream of a 2,480-page Tool Kit map) and transform; **inferred** for the
-  exact scale of the map pages' final colour conversion; **unknown** for header field 0x08.
-- Date: 2026-10-30, page body added 2026-11-01, map codec solved 2026-11-01
+  exact scale of the map pages' final colour conversion and for colour specular's chroma centre;
+  **unknown** for header field 0x08.
+- Date: 2026-10-30, page body added 2026-11-01, map codec solved 2026-11-01, colour specular
+  corrected 2026-11-02
 
 ## What we know
 
@@ -213,7 +215,7 @@ format in id's 2006 paper.
 | --- | --- | --- |
 | Diffuse | YCoCg 4:2:0. Per 16×16 area: four Y blocks (top-left, top-right, bottom-left, bottom-right; luma tables), then Co, then Cg (chroma tables). Areas in rows, left to right | 384 |
 | Normal | Two channels, alternating per 8×8 tile (X, Y, X, Y …), luma tables | 512 |
-| Specular | Byte 6 = 1: one channel, luma tables. Byte 6 = 0: colour, coded exactly like the diffuse stream | 256 or 384 |
+| Specular | Byte 6 = 1: one channel, luma tables. Byte 6 = 0: colour, coded like the diffuse stream but with the chroma centred at 0 (see below) | 256 or 384 |
 | Power | One channel at 32×32 (a quarter of the page in each direction), luma tables | 16 |
 | Mask | Not JPEG: 128 × 128 bits, row by row, **least significant bit first** in each byte | 2,048 bytes |
 
@@ -231,6 +233,8 @@ format in id's 2006 paper.
 - **Normal channels** are also at half scale: with `n` the IDCT output, the value the game exports
   is `2 × (n + 64)`.
 - **Specular and power** get the +128 level shift and are used as is.
+- **Colour specular** is reconstructed like the diffuse layer, except that its Co and Cg are at
+  half scale around **0**, not 64: `Co = 2 × c`.
 
 **How well it matches the game's own output:** the decoded Co and Cg match the game's exported
 physical diffuse texture to within 0.5/255 on average, both normal channels correlate at 0.999 with
@@ -250,8 +254,13 @@ pages hadn't shown:
 - About 40% of pages have **colour specular**: byte 6 is 0 and the specular stream has the
   diffuse stream's structure (YCoCg 4:2:0, four Y blocks then two chroma blocks per 16×16 area,
   chroma tables). In a sample, byte 6 = 0 matched the colour structure and byte 6 = 1 the mono
-  one in every page. The colour conversion is assumed to be the diffuse one; no ground truth has
-  colour specular yet.
+  one in every page.
+- **Colour specular's chroma is centred at 0** (inferred; no ground truth has colour specular yet).
+  Decoded with the diffuse layer's centre of 64, 150 colour specular pages at level 3 average RGB
+  (9, 3, 185): nearly every texel clips and only 0.4% are near grey (channels within 16 of each
+  other). With 0 they average (9, 9, 10), 93% near grey, matching the one-channel specular pages'
+  average of 10.7; level 5 gives the same. A centre of 32 or −64 is clearly worse. With the wrong
+  centre, colour specular decodes as saturated blue and magenta.
 
 #### Ground truth with `vt_export`
 
