@@ -266,6 +266,7 @@ void TestArchives( const std::string& folder )
 
 	// Found by its source name too
 	CHECK( archive.Find( "maps/test/_combo/_area0.lwo" ) == area );
+	CHECK( archive.Find( "maps/test/_combo/_area0.lwo", false ) == nullptr );	// built names only
 
 	const rage::ArchiveEntry* empty = archive.Find( "generated/empty.parm" );
 	CHECK( empty != nullptr && archive.Read( *empty, out, &error ) && out.empty() );
@@ -283,6 +284,51 @@ void TestArchives( const std::string& folder )
 	// Something that isn't an archive
 	rage::Archive bad;
 	CHECK( !bad.Open( folder + "/does_not_exist.resources", &error ) );
+
+	// A damaged table size or entry count fails at once instead of allocating for it
+	{
+		std::vector<uint8_t> bytes;
+		FILE* f = fopen( basePath.c_str(), "rb" );
+		for( int c; f != nullptr && ( c = fgetc( f ) ) != EOF; )
+		{
+			bytes.push_back( uint8_t( c ) );
+		}
+		if( f != nullptr )
+		{
+			fclose( f );
+		}
+		CHECK( bytes.size() > 12 );
+
+		const std::string damagedPath = folder + "/selftest_damaged.resources";
+		auto openDamaged = [&]( const std::vector<uint8_t>& damaged )
+		{
+			FILE* out = fopen( damagedPath.c_str(), "wb" );
+			if( out == nullptr )
+			{
+				return true;
+			}
+			fwrite( damaged.data(), 1, damaged.size(), out );
+			fclose( out );
+			rage::Archive archive;
+			return archive.Open( damagedPath, &error );
+		};
+
+		// The table size (big-endian, header bytes 8 to 11) runs past the end of the file
+		std::vector<uint8_t> damaged = bytes;
+		damaged[8] = 0x7F;
+		CHECK( !openDamaged( damaged ) );
+
+		// The entry count (the table's first number) is more than the table can hold
+		damaged = bytes;
+		const uint32_t tableOffset = ( uint32_t( bytes[4] ) << 24 ) | ( uint32_t( bytes[5] ) << 16 ) | ( uint32_t( bytes[6] ) << 8 ) | bytes[7];
+		CHECK( tableOffset < bytes.size() );
+		if( tableOffset < bytes.size() )
+		{
+			damaged[tableOffset] = 0x7F;
+			CHECK( !openDamaged( damaged ) );
+		}
+		remove( damagedPath.c_str() );
+	}
 
 	remove( basePath.c_str() );
 	remove( patchPath.c_str() );
@@ -522,9 +568,23 @@ void TestBModel()
 	CHECK( rage::ParseBModel( emptyModel.data.data(), emptyModel.data.size(), model, &error ) );
 	CHECK( model.surfaces.empty() && model.sourceTime == 42 );
 
+	// A damaged index count fails at once instead of allocating gigabytes for it
+	Bytes hugeIndexes;
+	hugeIndexes.Magic();
+	hugeIndexes.U32( 42 );
+	hugeIndexes.U32( 1 );
+	const float scales[10] = { 1, 1, 1, 0, 0, 0, 1, 1, 0, 0 };
+	WriteSurfaceHeader( hugeIndexes, "textures/test/huge", 0, 0xC0000000u, 0x1F, scales );
+	CHECK( !rage::ParseBModel( hugeIndexes.data.data(), hugeIndexes.data.size(), model, &error ) );
+
 	// Wrong magic
 	const uint8_t junk[16] = { 1, 2, 3, 4 };
 	CHECK( !rage::ParseBModel( junk, sizeof( junk ), model, &error ) );
+
+	// An older version, as some occlusion meshes are, is named as such
+	const uint8_t older[16] = { 0x17, 0x4C, 0x4D, 0x42 };
+	CHECK( !rage::ParseBModel( older, sizeof( older ), model, &error ) );
+	CHECK( error.find( "unsupported .bmodel version 23" ) != std::string::npos );
 }
 
 /*

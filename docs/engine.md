@@ -129,7 +129,7 @@ look yet.
 
 | Step | Where |
 | --- | --- |
-| `base/gameresources_sp_01.patch` and `base/gameresources.resources` are mounted, patch first, after every normal search path, so loose files and mods override them | `engine/neo/framework/FileSystem.cpp` |
+| `base/gameresources_sp_01.patch` and `base/gameresources.resources` are mounted, patch first, after every normal search path, so loose files and mods override them. Only `.bmodel`, `.proc` and `.entities` files are served from them, by their built names: other RAGE files can share a path with a file Doom 3's loaders ask for (RAGE's `generated/swf/dialog.bswf`, a map's `.script`) without sharing its format | `engine/neo/framework/FileSystem.cpp` |
 | An entry is unpacked into memory when it's opened (raw deflate without a final block) | `engine/neo/rage/RageArchive.cpp` |
 | `maps/<map>/_combo/<map>.proc` (`mapProcFile005`) gives the BSP nodes and the number of areas | `engine/neo/renderer/RenderWorld_load.cpp` |
 | Each area's `_area<N>.bmodel` becomes that area's model: all six vertex formats, strips and lists, material ranges | `engine/neo/rage/RageBModel.cpp`, `engine/neo/renderer/Model_bmodel.cpp` |
@@ -165,9 +165,21 @@ and runs with `ctest` from the build folder.
 `rage_check <RAGE folder> [--unpack]` runs the same readers over a real install, mounting the
 archives the way `fs_ragePath` does. It parses every `.bmodel` and `.entities` entry, and checks
 every map's `.proc` and that all of the map's area models are there. With `--unpack` it also
-unpacks every entry and checks its size. It prints counts and failures only. The readers haven't been run against real RAGE files
-in this repository's test setup yet, so the first run on a real install is the real check: if a
-map doesn't load, the console says which file and why.
+unpacks every entry and checks its size. It prints counts and failures only.
+
+On a Steam install with all DLC (checked 2026-11-03):
+
+- `rage_check --unpack`: all 74,033 entries unpack (1.9 GB). 30,647 of 30,649 `.bmodel` files
+  parse; the other two are occlusion meshes in an older version (first byte `0x17`, not `0x18`),
+  which the loader doesn't use. All 31 `.entities` files parse (155 player starts), and all 31
+  maps have every area model.
+- `map game/tracks/dusty8` loads the map: 316 areas, 884 surfaces, 293,605 vertexes and 292,478
+  triangles, which take 9.0 MB of the 124 MB static vertex buffer. The stand-in map puts the
+  player start at `player_start_2`.
+- Spawning that player still needs Doom 3 BFG's player definition, and with no lights in the map
+  the view is black. Both are for the next steps.
+
+If a map doesn't load, the console says which file and why.
 
 ## Updating from upstream RBDOOM-3-BFG
 

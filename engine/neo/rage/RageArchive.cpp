@@ -30,12 +30,38 @@ const size_t	ARCHIVE_HEADER_SIZE = 12;
 const size_t	LANGUAGE_RECORD_SIZE = 24;	// 20-byte name, 4-byte size
 const size_t	ENTRY_TAIL_SIZE = 20;		// not understood yet
 
+// The smallest table entry: an id, three name lengths, four numbers and the tail
+const size_t	MIN_ENTRY_SIZE = 4 + 3 * 4 + 4 * 4 + ENTRY_TAIL_SIZE;
+
+// Deflate can't expand data more than about 1032 times
+const uint64_t	MAX_INFLATE_RATIO = 1032;
+
 void SetError( std::string* error, const std::string& message )
 {
 	if( error != nullptr )
 	{
 		*error = message;
 	}
+}
+
+// 64-bit seeks: archive offsets go up to 4 GB, and a long stops at 2 GB on Windows
+bool SeekTo( FILE* f, uint64_t offset )
+{
+#if defined( _WIN32 )
+	return _fseeki64( f, int64_t( offset ), SEEK_SET ) == 0;
+#else
+	return fseeko( f, off_t( offset ), SEEK_SET ) == 0;
+#endif
+}
+
+uint64_t SizeOf( FILE* f )
+{
+#if defined( _WIN32 )
+	const int64_t size = ( _fseeki64( f, 0, SEEK_END ) == 0 ) ? _ftelli64( f ) : -1;
+#else
+	const off_t size = ( fseeko( f, 0, SEEK_END ) == 0 ) ? ftello( f ) : -1;
+#endif
+	return size < 0 ? 0 : uint64_t( size );
 }
 
 // Walks the table. Numbers are big-endian; string lengths are little-endian.
@@ -180,6 +206,7 @@ void Archive::Close()
 	byName.clear();
 	bySource.clear();
 	path.clear();
+	fileSize = 0;
 }
 
 bool Archive::Open( const std::string& path_, std::string* error )
@@ -193,8 +220,9 @@ bool Archive::Open( const std::string& path_, std::string* error )
 		return false;
 	}
 
+	fileSize = SizeOf( file );
 	uint8_t header[ARCHIVE_HEADER_SIZE];
-	if( fread( header, 1, sizeof( header ), file ) != sizeof( header ) || memcmp( header, ARCHIVE_MAGIC, 4 ) != 0 )
+	if( !SeekTo( file, 0 ) || fread( header, 1, sizeof( header ), file ) != sizeof( header ) || memcmp( header, ARCHIVE_MAGIC, 4 ) != 0 )
 	{
 		SetError( error, path_ + " isn't a RAGE .resources archive" );
 		Close();
@@ -204,8 +232,16 @@ bool Archive::Open( const std::string& path_, std::string* error )
 	const uint32_t tableOffset = ( uint32_t( header[4] ) << 24 ) | ( uint32_t( header[5] ) << 16 ) | ( uint32_t( header[6] ) << 8 ) | header[7];
 	const uint32_t tableSize = ( uint32_t( header[8] ) << 24 ) | ( uint32_t( header[9] ) << 16 ) | ( uint32_t( header[10] ) << 8 ) | header[11];
 
+	// Check the table fits in the file before allocating it, so a damaged header fails here
+	if( uint64_t( tableOffset ) + tableSize > fileSize )
+	{
+		SetError( error, path_ + ": the table is cut short" );
+		Close();
+		return false;
+	}
+
 	std::vector<uint8_t> table( tableSize );
-	if( fseek( file, long( tableOffset ), SEEK_SET ) != 0 || fread( table.data(), 1, tableSize, file ) != tableSize )
+	if( !SeekTo( file, tableOffset ) || fread( table.data(), 1, tableSize, file ) != tableSize )
 	{
 		SetError( error, path_ + ": the table is cut short" );
 		Close();
@@ -217,6 +253,13 @@ bool Archive::Open( const std::string& path_, std::string* error )
 	if( !reader.U32( count ) )
 	{
 		SetError( error, path_ + ": bad table" );
+		Close();
+		return false;
+	}
+
+	if( count > ( table.size() - 4 ) / MIN_ENTRY_SIZE )
+	{
+		SetError( error, path_ + ": the table can't hold " + std::to_string( count ) + " entries" );
 		Close();
 		return false;
 	}
@@ -251,13 +294,17 @@ bool Archive::Open( const std::string& path_, std::string* error )
 	return true;
 }
 
-const ArchiveEntry* Archive::Find( const std::string& name ) const
+const ArchiveEntry* Archive::Find( const std::string& name, bool sourceNames ) const
 {
 	const std::string key = NormalizeName( name );
 	auto it = byName.find( key );
 	if( it != byName.end() )
 	{
 		return &entries[it->second];
+	}
+	if( !sourceNames )
+	{
+		return nullptr;
 	}
 	it = bySource.find( key );
 	if( it != bySource.end() )
@@ -280,8 +327,21 @@ bool Archive::Read( const ArchiveEntry& entry, std::vector<uint8_t>& out, std::s
 		return false;
 	}
 
+	// Check the sizes against the file and against what deflate can do before allocating, so a
+	// damaged table entry fails here
+	if( uint64_t( entry.offset ) + entry.storedSize > fileSize )
+	{
+		SetError( error, path + ": " + entry.name + " runs past the end of the archive" );
+		return false;
+	}
+	if( entry.storedSize != entry.size && uint64_t( entry.size ) > uint64_t( entry.storedSize ) * MAX_INFLATE_RATIO + 1024 )
+	{
+		SetError( error, path + ": " + entry.name + " can't unpack to its recorded size of " + std::to_string( entry.size ) );
+		return false;
+	}
+
 	std::vector<uint8_t> stored( entry.storedSize );
-	if( fseek( file, long( entry.offset ), SEEK_SET ) != 0 || fread( stored.data(), 1, stored.size(), file ) != stored.size() )
+	if( !SeekTo( file, entry.offset ) || fread( stored.data(), 1, stored.size(), file ) != stored.size() )
 	{
 		SetError( error, path + ": can't read " + entry.name );
 		return false;
@@ -337,11 +397,11 @@ bool Library::Mount( const std::string& path, std::string* error )
 	return true;
 }
 
-const ArchiveEntry* Library::Find( const std::string& name, const Archive** archiveOut ) const
+const ArchiveEntry* Library::Find( const std::string& name, const Archive** archiveOut, bool sourceNames ) const
 {
 	for( const Archive* archive : archives )
 	{
-		const ArchiveEntry* entry = archive->Find( name );
+		const ArchiveEntry* entry = archive->Find( name, sourceNames );
 		if( entry != nullptr )
 		{
 			if( archiveOut != nullptr )

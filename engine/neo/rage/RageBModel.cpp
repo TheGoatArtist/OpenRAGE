@@ -273,6 +273,13 @@ bool ParseSurface( Reader& reader, BModelSurface& surface, std::string& error )
 	}
 	reader.Skip( size_t( vertexCount ) * vertexSize );
 
+	// Check the count against what's left before allocating, as for the vertexes: a damaged
+	// count must fail here, not allocate gigabytes
+	if( !reader.Has( size_t( indexCount ) * 2 ) )
+	{
+		error = "indexes are cut short";
+		return false;
+	}
 	std::vector<uint16_t> indexes( indexCount );
 	for( uint32_t i = 0; i < indexCount; i++ )
 	{
@@ -368,7 +375,15 @@ bool ParseWithTimeSize( const uint8_t* data, size_t size, size_t timeSize, BMode
 
 	if( !reader.Magic() )
 	{
-		error = "not a .bmodel (bad magic)";
+		// The first byte is a version: some occlusion meshes are an older 0x17 version
+		if( size >= 4 && memcmp( data + 1, BMODEL_MAGIC + 1, 3 ) == 0 )
+		{
+			error = "unsupported .bmodel version " + std::to_string( data[0] ) + " (this reader knows version " + std::to_string( BMODEL_MAGIC[0] ) + ")";
+		}
+		else
+		{
+			error = "not a .bmodel (bad magic)";
+		}
 		return false;
 	}
 

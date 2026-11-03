@@ -175,6 +175,7 @@ int main( int argc, char** argv )
 	size_t entries = 0, shadowed = 0, unpacked = 0;
 	uint64_t unpackedBytes = 0;
 	size_t bmodels = 0, surfaces = 0, vertexes = 0, triangles = 0, bmodelsNoTriangles = 0;
+	Failures olderBModels;	// an older .bmodel version (some occlusion meshes), not a reader failure
 	std::map<uint32_t, size_t> formats;
 	size_t entityFiles = 0, entityCount = 0, playerStarts = 0, entityFilesNoStart = 0;
 	size_t maps = 0, mapsComplete = 0, areasTotal = 0;
@@ -224,7 +225,14 @@ int main( int argc, char** argv )
 				rage::BModel model;
 				if( !rage::ParseBModel( data.data(), data.size(), model, &error ) )
 				{
-					bmodelFailures.Add( entry.name + ": " + error );
+					if( error.compare( 0, 27, "unsupported .bmodel version" ) == 0 )
+					{
+						olderBModels.Add( entry.name + ": " + error );
+					}
+					else
+					{
+						bmodelFailures.Add( entry.name + ": " + error );
+					}
 					continue;
 				}
 				size_t modelTriangles = 0;
@@ -315,8 +323,8 @@ int main( int argc, char** argv )
 	const double seconds = std::chrono::duration<double>( std::chrono::steady_clock::now() - start ).count();
 	std::printf( "\n%zu entries (%zu more replaced by the patch), %zu unpacked (%.1f MB), %.1f s\n",
 				 entries, shadowed, unpacked, unpackedBytes / ( 1024.0 * 1024.0 ), seconds );
-	std::printf( ".bmodel:   %zu parsed of %zu; %zu surfaces, %zu vertexes, %zu triangles; %zu with no triangles\n",
-				 bmodels - bmodelFailures.count, bmodels, surfaces, vertexes, triangles, bmodelsNoTriangles );
+	std::printf( ".bmodel:   %zu parsed of %zu (%zu in an older version); %zu surfaces, %zu vertexes, %zu triangles; %zu with no triangles\n",
+				 bmodels - bmodelFailures.count - olderBModels.count, bmodels, olderBModels.count, surfaces, vertexes, triangles, bmodelsNoTriangles );
 	std::printf( "           vertex formats:" );
 	for( const auto& format : formats )
 	{
@@ -327,6 +335,7 @@ int main( int argc, char** argv )
 				 entityFiles - entityFailures.count, entityFiles, entityCount, playerStarts, entityFilesNoStart );
 	std::printf( "maps:      %zu .proc files, %zu with every area model present, %zu areas in all\n", maps, mapsComplete, areasTotal );
 
+	olderBModels.Print( ".bmodel files in an older version (not failures; the loader doesn't read them)" );
 	unpackFailures.Print( "Entries that didn't unpack" );
 	bmodelFailures.Print( ".bmodel files that didn't parse" );
 	entityFailures.Print( ".entities files that didn't parse" );

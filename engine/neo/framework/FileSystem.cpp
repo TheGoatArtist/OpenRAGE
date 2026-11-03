@@ -377,6 +377,17 @@ static const char* rageArchiveNames[] =
 	"base/gameresources.resources"
 };
 
+// Only the file types OpenRAGE's own RAGE loaders read are served from the archives, and only
+// by their built names. Other RAGE files can share a path with a file Doom 3's loaders ask for
+// without sharing its format: RAGE's generated/swf/dialog.bswf, a map's .script, or a .bimage
+// whose source name is lights/squarelight1.tga. Doom 3's loaders mustn't get those.
+static const char* rageFileTypes[] =
+{
+	"bmodel",
+	"proc",
+	"entities"
+};
+
 // Mounts the archives under fs_ragePath, again if the path changed. Call with the mutex held.
 static bool Rage_MountArchives()
 {
@@ -433,6 +444,22 @@ static idFile* Rage_OpenFile( const char* relativePath )
 		return NULL;
 	}
 
+	idStr extension;
+	idStr( relativePath ).ExtractFileExtension( extension );
+	bool isRageFileType = false;
+	for( const char* type : rageFileTypes )
+	{
+		if( extension.Icmp( type ) == 0 )
+		{
+			isRageFileType = true;
+			break;
+		}
+	}
+	if( !isRageFileType )
+	{
+		return NULL;
+	}
+
 	std::vector<uint8_t> data;
 	{
 		std::lock_guard<std::mutex> lock( rageLibraryMutex );
@@ -442,7 +469,7 @@ static idFile* Rage_OpenFile( const char* relativePath )
 		}
 
 		const rage::Archive* archive = NULL;
-		const rage::ArchiveEntry* entry = rageLibrary.Find( relativePath, &archive );
+		const rage::ArchiveEntry* entry = rageLibrary.Find( relativePath, &archive, false );	// built names only
 		if( entry == NULL )
 		{
 			return NULL;

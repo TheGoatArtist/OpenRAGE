@@ -84,9 +84,9 @@ public:
 		return entries;
 	}
 
-	// Looks an entry up by its name, then by its source name. Case and slash direction
-	// don't matter. Returns nullptr if it isn't in this archive.
-	const ArchiveEntry*				Find( const std::string& name ) const;
+	// Looks an entry up by its name, then (unless sourceNames is false) by its source name.
+	// Case and slash direction don't matter. Returns nullptr if it isn't in this archive.
+	const ArchiveEntry*				Find( const std::string& name, bool sourceNames = true ) const;
 
 	// Reads and unpacks an entry's data from this archive.
 	bool							Read( const ArchiveEntry& entry, std::vector<uint8_t>& out, std::string* error ) const;
@@ -94,6 +94,7 @@ public:
 private:
 	std::string						path;
 	FILE*							file = nullptr;
+	uint64_t						fileSize = 0;
 	std::vector<ArchiveEntry>		entries;
 	std::unordered_map<std::string, size_t> byName;
 	std::unordered_map<std::string, size_t> bySource;
@@ -115,8 +116,9 @@ public:
 		return *archives[i];
 	}
 
-	// Finds the first archive that has the entry; archiveOut may be nullptr.
-	const ArchiveEntry*				Find( const std::string& name, const Archive** archiveOut ) const;
+	// Finds the first archive that has the entry; archiveOut may be nullptr. sourceNames as
+	// for Archive::Find.
+	const ArchiveEntry*				Find( const std::string& name, const Archive** archiveOut, bool sourceNames = true ) const;
 	bool							Read( const std::string& name, std::vector<uint8_t>& out, std::string* error ) const;
 
 private:
