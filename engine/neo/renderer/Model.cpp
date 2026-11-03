@@ -336,6 +336,12 @@ void idRenderModelStatic::InitFromFile( const char* fileName, const idImportOpti
 		loaded		= LoadOBJ( name, &sourceTimeStamp );
 		reloadable	= true;
 	}
+	// OpenRAGE: RAGE static models, read from the player's RAGE install
+	else if( extension.Icmp( "bmodel" ) == 0 )
+	{
+		loaded		= LoadBModel( name, &sourceTimeStamp );
+		reloadable	= true;
+	}
 	// RB end
 	else if( extension.Icmp( "lwo" ) == 0 )
 	{

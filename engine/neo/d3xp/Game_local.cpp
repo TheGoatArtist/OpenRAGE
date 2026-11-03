@@ -945,6 +945,9 @@ idGameLocal::LoadMap
 Initializes all map variables common to both save games and spawned games.
 ===================
 */
+// OpenRAGE: RAGE maps have no .map file (see RageMap.cpp)
+idMapFile* Rage_MakeStandInMapFile( const char* mapName, const idRenderWorld* renderWorld );
+
 void idGameLocal::LoadMap( const char* mapName, int randseed )
 {
 	bool sameMap = ( mapFile && idStr::Icmp( mapFileName, mapName ) == 0 );
@@ -970,7 +973,13 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 		{
 			delete mapFile;
 			mapFile = NULL;
-			Error( "Couldn't load %s", mapName );
+
+			// OpenRAGE: a RAGE map has no .map file, so stand one in
+			mapFile = Rage_MakeStandInMapFile( mapName, gameRenderWorld );
+			if( mapFile == NULL )
+			{
+				Error( "Couldn't load %s", mapName );
+			}
 		}
 	}
 	mapFileName = mapFile->GetName();

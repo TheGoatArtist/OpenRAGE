@@ -721,6 +721,7 @@ set(GAMED3XP_SOURCES
 	d3xp/precompiled.cpp
 	d3xp/Projectile.cpp
 	d3xp/Pvs.cpp
+	d3xp/RageMap.cpp
 	d3xp/SecurityCamera.cpp
 	d3xp/SmokeParticles.cpp
 	d3xp/Sound.cpp
@@ -820,6 +821,12 @@ file(GLOB POSIX_SOURCES sys/posix/*.cpp)
 
 file(GLOB COMMON_INCLUDES sys/common/*.h)
 file(GLOB COMMON_SOURCES sys/common/*.cpp)
+
+# OpenRAGE: readers for RAGE's file formats (plain C++ and zlib, built without the precompiled header)
+file(GLOB RAGE_INCLUDES rage/*.h)
+file(GLOB RAGE_SOURCES rage/*.cpp)
+source_group("rage" FILES ${RAGE_INCLUDES})
+source_group("rage" FILES ${RAGE_SOURCES})
 
 file(GLOB SDL_INCLUDES sys/sdl/*.h)
 file(GLOB SDL_SOURCES sys/sdl/*.cpp)
@@ -971,6 +978,7 @@ source_group("tools\\imgui\\util" FILES ${IMGUI_EDITOR_UTIL_SOURCES})
 
 set(RBDOOM3_INCLUDES
 			${AAS_INCLUDES}
+			${RAGE_INCLUDES}
 			${CM_INCLUDES}
 			${FRAMEWORK_INCLUDES}
 			${FRAMEWORK_DECLS_INCLUDES}
@@ -1019,6 +1027,7 @@ set(RBDOOM3_INCLUDES
 			
 set(RBDOOM3_SOURCES
 			${NATVIS_SOURCES}
+			${RAGE_SOURCES}
 			${AAS_SOURCES}
 			${CM_SOURCES}
 			${FRAMEWORK_SOURCES}
@@ -1189,6 +1198,7 @@ if(MSVC)
 	if(USE_PRECOMPILED_HEADERS) 
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${RAGE_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1331,6 +1341,7 @@ else()
 
 		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${ZLIB_SOURCES} ${BINKDEC_SOURCES} ${IMGUI_SOURCES} ${MIKKTSPACE_SOURCES} ${OGGVORBIS_SOURCES} ${OPTICK_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${RAGE_SOURCES})
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
@@ -1501,3 +1512,12 @@ add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
 add_dependencies(${APP_NAME} Shaders ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
+# OpenRAGE: self-test for the RAGE format readers. It builds its own small files, so it
+# needs no game data. Run it with `ctest` from the build folder.
+option(OPENRAGE_TESTS "Build OpenRAGE's self-tests" ON)
+if(OPENRAGE_TESTS)
+	add_executable(rage_selftest rage/test/rage_selftest.cpp ${RAGE_SOURCES} ${ZLIB_SOURCES})
+	target_link_libraries(rage_selftest ${ZLIB_LIBRARY})
+	enable_testing()
+	add_test(NAME rage_selftest COMMAND rage_selftest ${CMAKE_CURRENT_BINARY_DIR})
+endif()

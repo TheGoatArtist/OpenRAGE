@@ -32,6 +32,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Unzip.h"
 
+// OpenRAGE: RAGE's own archives
+#include "../rage/RageFormats.h"
+#include <mutex>
+
 #if !defined( TYPEINFOPROJECT ) && !defined( DMAP  )
 	#include "Zip.h"
 #endif
@@ -345,6 +349,200 @@ idCVar	fs_enableBackgroundCaching( "fs_enableBackgroundCaching", "1", CVAR_SYSTE
 
 idFileSystemLocal	fileSystemLocal;
 idFileSystem* 		fileSystem = &fileSystemLocal;
+
+/*
+===============================================================================
+
+	OpenRAGE: RAGE's archives
+
+	fs_ragePath names the folder of the player's RAGE install, the one that holds base/.
+	Its archives are searched after every other search path, so loose files and mods
+	override them. Nothing is ever written back: entries are unpacked into memory when a
+	file is opened. Formats: docs/research/formats/resources-archive.md.
+
+===============================================================================
+*/
+
+idCVar fs_ragePath( "fs_ragePath", "", CVAR_SYSTEM | CVAR_ARCHIVE, "folder of a RAGE install (the one that holds base/); RAGE's archives are read from there" );
+
+static rage::Library	rageLibrary;
+static idStr			rageLibraryPath;
+static bool				rageLibraryMounted = false;
+static std::mutex		rageLibraryMutex;
+
+// Archives in search order: a patch replaces base entries with the same name
+static const char* rageArchiveNames[] =
+{
+	"base/gameresources_sp_01.patch",
+	"base/gameresources.resources"
+};
+
+// Mounts the archives under fs_ragePath, again if the path changed. Call with the mutex held.
+static bool Rage_MountArchives()
+{
+	const char* path = fs_ragePath.GetString();
+	if( rageLibraryMounted && rageLibraryPath.Icmp( path ) == 0 )
+	{
+		return rageLibrary.NumArchives() > 0;
+	}
+
+	rageLibrary.Clear();
+	rageLibraryMounted = true;
+	rageLibraryPath = path;
+	if( path[0] == '\0' )
+	{
+		return false;
+	}
+
+	for( const char* archiveName : rageArchiveNames )
+	{
+		idStr fullPath = path;
+		fullPath.AppendPath( archiveName );
+		fullPath.BackSlashesToSlashes();
+		FILE* probe = fopen( fullPath.c_str(), "rb" );
+		if( probe == NULL )
+		{
+			continue;	// not every install has every archive
+		}
+		fclose( probe );
+
+		std::string error;
+		if( rageLibrary.Mount( fullPath.c_str(), &error ) )
+		{
+			const rage::Archive& archive = rageLibrary.GetArchive( rageLibrary.NumArchives() - 1 );
+			common->Printf( "Mounted RAGE archive %s (%d entries)\n", fullPath.c_str(), ( int )archive.Entries().size() );
+		}
+		else
+		{
+			common->Warning( "Couldn't mount RAGE archive: %s", error.c_str() );
+		}
+	}
+
+	if( rageLibrary.NumArchives() == 0 )
+	{
+		common->Warning( "fs_ragePath \"%s\" has no RAGE archives (expected base/gameresources.resources)", path );
+	}
+	return rageLibrary.NumArchives() > 0;
+}
+
+// Opens a file from RAGE's archives, unpacked into memory, or returns NULL
+static idFile* Rage_OpenFile( const char* relativePath )
+{
+	if( fs_ragePath.GetString()[0] == '\0' )
+	{
+		return NULL;
+	}
+
+	std::vector<uint8_t> data;
+	{
+		std::lock_guard<std::mutex> lock( rageLibraryMutex );
+		if( !Rage_MountArchives() )
+		{
+			return NULL;
+		}
+
+		const rage::Archive* archive = NULL;
+		const rage::ArchiveEntry* entry = rageLibrary.Find( relativePath, &archive );
+		if( entry == NULL )
+		{
+			return NULL;
+		}
+
+		std::string error;
+		if( !archive->Read( *entry, data, &error ) )
+		{
+			common->Warning( "%s", error.c_str() );
+			return NULL;
+		}
+	}
+
+	if( data.empty() )
+	{
+		return new( TAG_IDFILE ) idFile_Memory( relativePath, "", 0 );
+	}
+
+	idFile_Memory* memFile = new( TAG_IDFILE ) idFile_Memory( relativePath );
+	memFile->SetLength( ( int )data.size() );
+	memcpy( ( void* )memFile->GetDataPtr(), data.data(), data.size() );
+	memFile->TakeDataOwnership();
+	return memFile;
+}
+
+/*
+================
+rageList_f
+
+Lists entries in RAGE's archives whose name contains a filter
+================
+*/
+CONSOLE_COMMAND_SHIP( rageList, "lists entries in RAGE's archives whose type or name contains the filter: rageList [filter]", NULL )
+{
+	std::lock_guard<std::mutex> lock( rageLibraryMutex );
+	if( !Rage_MountArchives() )
+	{
+		common->Printf( "No RAGE archives. Set fs_ragePath to your RAGE install folder.\n" );
+		return;
+	}
+
+	const std::string filter = rage::NormalizeName( args.Argc() > 1 ? args.Argv( 1 ) : "" );
+	int shown = 0;
+	for( size_t a = 0; a < rageLibrary.NumArchives(); a++ )
+	{
+		for( const rage::ArchiveEntry& entry : rageLibrary.GetArchive( a ).Entries() )
+		{
+			if( !filter.empty() && rage::NormalizeName( entry.name ).find( filter ) == std::string::npos && rage::NormalizeName( entry.type ).find( filter ) == std::string::npos )
+			{
+				continue;
+			}
+			common->Printf( "%-12s %10u  %s\n", entry.type.c_str(), entry.size, entry.name.c_str() );
+			shown++;
+		}
+	}
+	common->Printf( "%d entries\n", shown );
+}
+
+/*
+================
+rageMaps_f
+
+Lists RAGE maps: every map has a _combo/<map>.proc world file
+================
+*/
+CONSOLE_COMMAND_SHIP( rageMaps, "lists the maps in RAGE's archives, as names for the map command", NULL )
+{
+	std::lock_guard<std::mutex> lock( rageLibraryMutex );
+	if( !Rage_MountArchives() )
+	{
+		common->Printf( "No RAGE archives. Set fs_ragePath to your RAGE install folder.\n" );
+		return;
+	}
+
+	idStrList maps;
+	for( size_t a = 0; a < rageLibrary.NumArchives(); a++ )
+	{
+		for( const rage::ArchiveEntry& entry : rageLibrary.GetArchive( a ).Entries() )
+		{
+			// maps/<path>/<map>/_combo/<map>.proc  ->  <path>/<map>
+			const std::string name = rage::NormalizeName( entry.name );
+			const size_t combo = name.rfind( "/_combo/" );
+			if( name.compare( 0, 5, "maps/" ) != 0 || combo == std::string::npos || name.size() < 5 || name.compare( name.size() - 5, 5, ".proc" ) != 0 )
+			{
+				continue;
+			}
+			idStr mapName( name.substr( 5, combo - 5 ).c_str() );
+			if( maps.FindIndex( mapName ) < 0 )
+			{
+				maps.Append( mapName );
+			}
+		}
+	}
+	maps.SortWithTemplate( idSort_PathStr() );
+	for( int i = 0; i < maps.Num(); i++ )
+	{
+		common->Printf( "%s\n", maps[i].c_str() );
+	}
+	common->Printf( "%d maps. Load one with: map <name>\n", maps.Num() );
+}
 
 /*
 ================
@@ -3927,6 +4125,13 @@ idFile* idFileSystemLocal::OpenFileReadFlags( const char* relativePath, int sear
 		{
 			return rf;
 		}
+	}
+
+	// OpenRAGE: last of all, RAGE's own archives
+	idFile* rageFile = Rage_OpenFile( relativePath );
+	if( rageFile != NULL )
+	{
+		return rageFile;
 	}
 
 	if( fs_debug.GetInteger() )
