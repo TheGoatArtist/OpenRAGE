@@ -19,7 +19,7 @@ cp build/tools/compilers/release/rbdmap.exe .
 # Add files to the archive
 7z a "$filename" RBDoom3BFG.exe rbdmap.exe
 
-7z a "$filename" README.md RELEASE-NOTES.md LICENSE.md LICENSE_EXCEPTIONS.md \
+7z a "$filename" README.md RELEASE-NOTES.md COPYING.txt LICENSE_EXCEPTIONS.md \
     base/*.cfg base/materials/*.mtr \
     base/textures/common base/textures/editor \
     base/maps/zoomaps -x!generated -xr!autosave -xr!*.xcf -xr!*.blend

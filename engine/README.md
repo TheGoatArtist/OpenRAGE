@@ -390,7 +390,7 @@ The RBDOOM-3-BFG Edition GPL Source Code release includes functionality for rend
 
 ---
 # License <a name="license"></a>
-See LICENSE.md for the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+See COPYING.txt for the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 
 ADDITIONAL TERMS:  The Doom 3 BFG Edition GPL Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU GPL which accompanied the Doom 3 BFG Edition GPL Source Code.  If not, please request a copy in writing from id Software at id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
