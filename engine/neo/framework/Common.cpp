@@ -894,8 +894,18 @@ void idCommonLocal::RenderSplash()
 		renderSystem->DrawStretchPic( 0, 0, barWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 		renderSystem->DrawStretchPic( renderSystem->GetVirtualWidth() - barWidth, 0, barWidth, renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
 	}
-	renderSystem->SetColor4( 1, 1, 1, 1 );
-	renderSystem->DrawStretchPic( barWidth, barHeight, renderSystem->GetVirtualWidth() - barWidth * 2.0f, renderSystem->GetVirtualHeight() - barHeight * 2.0f, 0, 0, 1, 1, splashScreen );
+	// OpenRAGE: without a splash screen, fill the screen with black
+	if( splashScreen != NULL )
+	{
+		renderSystem->SetColor4( 1, 1, 1, 1 );
+		renderSystem->DrawStretchPic( barWidth, barHeight, renderSystem->GetVirtualWidth() - barWidth * 2.0f, renderSystem->GetVirtualHeight() - barHeight * 2.0f, 0, 0, 1, 1, splashScreen );
+	}
+	else
+	{
+		renderSystem->SetColor( colorBlack );
+		renderSystem->DrawStretchPic( 0, 0, renderSystem->GetVirtualWidth(), renderSystem->GetVirtualHeight(), 0, 0, 1, 1, whiteMaterial );
+		renderSystem->SetColor4( 1, 1, 1, 1 );
+	}
 
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_moc, &time_gpu, &stats_backend, &stats_frontend );
 	renderSystem->RenderCommandBuffers( cmd );
@@ -1303,38 +1313,14 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 
 		whiteMaterial = declManager->FindMaterial( "_white" );
 
-		if( idStr::Icmp( sys_lang.GetString(), ID_LANG_FRENCH ) == 0 )
-		{
-			// If the user specified french, we show french no matter what SKU
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_french" );
-		}
-		else if( idStr::Icmp( defaultLang, ID_LANG_FRENCH ) == 0 )
-		{
-			// If the lead sku is french (ie: europe), display figs
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_figs" );
-		}
-		else
-		{
-			// Otherwise show it in english
-			splashScreen = declManager->FindMaterial( "guis/assets/splash/legal_english" );
-		}
-
-		// SP: Load in the splash screen images.
-		globalImages->LoadDeferredImages();
+		// OpenRAGE: Doom 3 BFG's legal splash screens and intro video belong to Doom 3, so they're
+		// not shown. RenderSplash() draws a black screen while the engine starts up instead.
+		splashScreen = NULL;
 
 		const int legalMinTime = 4000;
-		const bool showVideo = ( !com_skipIntroVideos.GetBool() && fileSystem->UsingResourceFiles() );
 		const bool showSplash = true;
-		if( showVideo )
+		if( showSplash )
 		{
-			RenderBink( "video\\loadvideo.bik" );
-			RenderSplash();
-			RenderSplash();
-		}
-		else if( showSplash )
-		{
-			idLib::Printf( "Skipping Intro Videos!\n" );
-			// display the legal splash screen
 			// No clue why we have to render this twice to show up...
 			RenderSplash();
 			// SRS - OSX needs this for some OpenGL drivers, otherwise renders leftover image before splash
@@ -1374,9 +1360,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 		// On the PC touch them all so they get included in the resource build
 		if( !fileSystem->UsingResourceFiles() )
 		{
-			declManager->FindMaterial( "guis/assets/splash/legal_english" );
-			declManager->FindMaterial( "guis/assets/splash/legal_french" );
-			declManager->FindMaterial( "guis/assets/splash/legal_figs" );
+			// OpenRAGE: Doom 3 BFG's legal splash screens are never shown, so they aren't touched here
 			// register the japanese font so it gets included
 			renderSystem->RegisterFont( "DFPHeiseiGothicW7" );
 			// Make sure all videos get touched because you can bring videos from one map to another, they need to be included in all maps

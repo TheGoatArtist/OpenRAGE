@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 if(NOT DEFINED APP_NAME)
 	# RB: This sets the name of the .exe and is the only line needed for a different mod executable.
 	# If you want to make a different game then you also need to change neo/framework/Licensee.h
-    set(APP_NAME RBDoom3BFG)
+    set(APP_NAME OpenRAGE)
 endif()
 project(${APP_NAME})
 
@@ -19,8 +19,9 @@ endif()
 option(STANDALONE
 		"Skip DOOM-3-BFG base/ folder and use content/ instead" OFF)
 
+# OpenRAGE: classic Doom 1 & 2 are left out by default
 option(DOOM_CLASSIC
-		"Build with Doom 1 & 2" ON)
+		"Build with Doom 1 & 2" OFF)
 
 option(FORCE_COLOR_OUTPUT
 		"Always produce ANSI-colored output (GNU/Clang only)." OFF)
@@ -804,9 +805,15 @@ if(MSVC)
 endif()
 
 set(WIN32_RESOURCES
-	sys/win32/rc/res/doom.ico
 	sys/win32/rc/doom.rc
 	)
+
+# OpenRAGE: the app icon is optional. Drop original artwork in sys/win32/rc/res/openrage.ico
+# and it's used automatically.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sys/win32/rc/res/openrage.ico)
+	list(APPEND WIN32_RESOURCES sys/win32/rc/res/openrage.ico)
+	set_source_files_properties(sys/win32/rc/doom.rc PROPERTIES COMPILE_DEFINITIONS OPENRAGE_HAS_ICON)
+endif()
 
 file(GLOB POSIX_INCLUDES sys/posix/*.h)
 file(GLOB POSIX_SOURCES sys/posix/*.cpp)
@@ -1390,18 +1397,21 @@ else()
 	
 	if(MACOSX_BUNDLE)
 		# define contents of macOS app bundle Resources folder
-		set(MACOS_RESOURCES sys/posix/res/Doom3BFG.icns ../base)
+		# OpenRAGE: the app icon is optional. Drop original artwork in sys/posix/res/OpenRAGE.icns
+		# and it's used automatically.
+		set(MACOS_RESOURCES ../base)
+		if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sys/posix/res/OpenRAGE.icns)
+			list(APPEND MACOS_RESOURCES sys/posix/res/OpenRAGE.icns)
+			set_source_files_properties(sys/posix/res/OpenRAGE.icns PROPERTIES XCODE_EXPLICIT_FILE_TYPE .icns)
+			set(MACOSX_BUNDLE_ICON_FILE OpenRAGE.icns)
+		endif()
 		source_group("Resources" FILES ${MACOS_RESOURCES})
 		set_source_files_properties(${MACOS_RESOURCES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-		# enable Xcode to display the icons file properly
-		set_source_files_properties(sys/posix/res/Doom3BFG.icns PROPERTIES XCODE_EXPLICIT_FILE_TYPE .icns)
-
 		# add macOS bundle properties to executable
-		set(MACOSX_BUNDLE_BUNDLE_NAME RBDoom-3-BFG)
-		set(MACOSX_BUNDLE_BUNDLE_VERSION 1.6.0)
-		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.6.0)
-		set(MACOSX_BUNDLE_ICON_FILE Doom3BFG.icns)
+		set(MACOSX_BUNDLE_BUNDLE_NAME OpenRAGE)
+		set(MACOSX_BUNDLE_BUNDLE_VERSION 0.1.0)
+		set(MACOSX_BUNDLE_SHORT_VERSION_STRING 0.1.0)
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
 

@@ -124,7 +124,10 @@ idFont::idFont( const char* n ) : name( n )
 	{
 		if( name.Icmp( DEFAULT_FONT ) == 0 )
 		{
-			idLib::FatalError( "Could not load default font \"%s\"", DEFAULT_FONT );
+			// OpenRAGE: the default font comes from Doom 3 BFG's data. Without it, keep going with
+			// an empty font (text drawn with it is skipped) instead of stopping the engine.
+			// The console and ImGui use their own fonts.
+			idLib::Warning( "Could not load default font \"%s\"", DEFAULT_FONT );
 		}
 		else
 		{

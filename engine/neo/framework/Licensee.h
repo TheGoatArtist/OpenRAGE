@@ -35,12 +35,16 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-#define GAME_NAME						"DOOM 3: BFG Edition"		// appears on window titles and errors
+// OpenRAGE: engine branding. OpenRAGE is built on RBDOOM-3-BFG, which is based on the
+// Doom 3 BFG Edition GPL source code by id Software.
+#define GAME_NAME						"OpenRAGE"		// appears on window titles and errors
 
 // RB: changed home folder so we don't break the savegame of the original game
-#define SAVE_PATH						"\\id Software\\RBDOOM 3 BFG"
+// OpenRAGE: own folder so saves and configs never mix with Doom 3 BFG or RBDOOM-3-BFG
+#define SAVE_PATH						"\\OpenRAGE"
 
-#define ENGINE_VERSION					"RBDOOM 3 BFG 1.6.0"	// printed in console
+#define OPENRAGE_VERSION				"0.1.0"
+#define ENGINE_VERSION					"OpenRAGE " OPENRAGE_VERSION " (RBDOOM 3 BFG 1.6.0)"	// printed in console
 // RB end
 
 // DG begin
@@ -66,27 +70,29 @@ If you have questions concerning this license or the applicable additional terms
 	#define	BASE_GAMEDIR				"base"
 #endif
 
-#define CONFIG_FILE						"D3BFGConfig.cfg"
+#define CONFIG_FILE						"OpenRAGEConfig.cfg"
 
 // see ASYNC_PROTOCOL_VERSION
 // use a different major for each game
 #define ASYNC_PROTOCOL_MAJOR			1
 
 // win32 info
-#define WIN32_CONSOLE_CLASS				"D3BFG_WinConsole"
-#define	WIN32_WINDOW_CLASS_NAME			"D3BFG"
-#define	WIN32_FAKE_WINDOW_CLASS_NAME	"D3BFG_WGL_FAKE"
+#define WIN32_CONSOLE_CLASS				"OpenRAGE_WinConsole"
+#define	WIN32_WINDOW_CLASS_NAME			"OpenRAGE"
+#define	WIN32_FAKE_WINDOW_CLASS_NAME	"OpenRAGE_WGL_FAKE"
 
 // RB begin
 // Default base path (used only if none could be found)
 #ifdef __APPLE__
-	#define DEFAULT_BASEPATH				"/Applications/RBDoom3BFG.app/Contents/Resources"
+	#define DEFAULT_BASEPATH				"/Applications/OpenRAGE.app/Contents/Resources"
 #else
-	#define DEFAULT_BASEPATH				"/usr/share/games/doom3bfg"
+	#define DEFAULT_BASEPATH				"/usr/share/games/openrage"
 #endif
 // RB end
 
 // raynorpat: Steam AppID and Steam App Name for figuring out Steam base path
+// OpenRAGE: until RAGE data loads natively, the engine still boots from a Doom 3 BFG
+// install, so these keep pointing at Doom 3 BFG (RAGE on Steam is AppID 9200).
 #define STEAMPATH_APPID					"208200"
 #define STEAMPATH_NAME					"DOOM 3 BFG Edition"
 

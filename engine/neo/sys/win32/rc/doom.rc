@@ -56,7 +56,10 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "res\\doom.ico"
+// OpenRAGE: only built in once original artwork exists at res\openrage.ico (see CMakeLists.txt)
+#ifdef OPENRAGE_HAS_ICON
+IDI_ICON1               ICON                    "res\\openrage.ico"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -64,8 +67,8 @@ IDI_ICON1               ICON                    "res\\doom.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 0,1,0,0
+ PRODUCTVERSION 0,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -80,14 +83,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "id Software LLC, a ZeniMax Media company"
-            VALUE "FileDescription", "DOOM 3: BFG Edition"
-            VALUE "FileVersion", "1.0.0.1"
-            VALUE "InternalName", "Doom3BFG"
-            VALUE "LegalCopyright", "© 1993-2012 id Software LLC, a ZeniMax Media company"
-            VALUE "OriginalFilename", "Doom3BFG"
-            VALUE "ProductName", "DOOM® 3: BFG Edition™"
-            VALUE "ProductVersion", "1.0.0.1"
+            VALUE "CompanyName", "OpenRAGE project"
+            VALUE "FileDescription", "OpenRAGE"
+            VALUE "FileVersion", "0.1.0.0"
+            VALUE "InternalName", "OpenRAGE"
+            VALUE "LegalCopyright", "© 1993-2012 id Software LLC, a ZeniMax Media company; RBDOOM-3-BFG contributors; OpenRAGE contributors. GPLv3 with additional terms."
+            VALUE "OriginalFilename", "OpenRAGE.exe"
+            VALUE "ProductName", "OpenRAGE"
+            VALUE "ProductVersion", "0.1.0.0"
         END
     END
     BLOCK "VarFileInfo"
