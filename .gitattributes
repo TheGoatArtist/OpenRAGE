@@ -15,3 +15,7 @@
 *.ico  binary
 *.zip  binary
 *.7z   binary
+
+# engine/ is imported from RBDOOM-3-BFG: keep its files byte-for-byte as upstream has them,
+# so upstream changes can be merged cleanly. engine/.gitattributes still applies on top.
+engine/** -text
