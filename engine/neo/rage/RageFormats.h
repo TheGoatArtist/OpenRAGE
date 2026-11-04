@@ -220,6 +220,26 @@ struct MapEntity
 
 bool ParseEntities( const char* text, size_t size, std::vector<MapEntity>& out, std::string* error );
 
+/*
+===============================================================================
+
+	Material declarations (materials.md): only what places a material in a megatexture
+
+===============================================================================
+*/
+
+struct MaterialDecl
+{
+	std::string	landPageFile;		// such as "dusty8": a land material, whose texture coordinates are positions in that page file's megatexture
+	std::string	pageTableMap;		// such as "_vmtrpagetable", the shared model megatexture
+	bool		hasVirtualMapping = false;
+	float		virtualMapping[4] = { 1, 1, 0, 0 };	// w, h, x, y: the material's rectangle in _vmtr, as fractions
+	bool		hasTransMap = false;	// a translucent material
+};
+
+// A material is one brace block of "key <tab> value" lines; keys are matched ignoring case.
+bool ParseMaterialDecl( const char* text, size_t size, MaterialDecl& out, std::string* error );
+
 } // namespace rage
 
 #endif // !OPENRAGE_RAGE_FORMATS_H

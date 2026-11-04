@@ -141,11 +141,34 @@ Any `.bmodel` also loads as an ordinary model, so other code can use RAGE models
 Nothing converted from the game is written to disk: RAGE models skip the engine's binary model
 cache, and RAGE maps don't get a `.bproc` file.
 
+### Megatextures
+
+RAGE's surfaces get their textures from megatextures, decoded from your install when a map
+loads. Nothing is written to disk.
+
+- A surface's RAGE material decl says where its texture is. **Land materials** (`landPageFile`)
+  use the map's own `virtualtextures/<map>.pages`, and their texture coordinates are positions in
+  it. **Most other materials** (`pagetablemap _vmtrpagetable`) sit in `virtualtextures/_vmtr.pages`
+  at their `virtualmapping` rectangle, so their texture coordinates are moved into it at load.
+- Each megatexture is decoded once, at the most detailed level that fits in
+  `r_rageMegatextureSize` (8192 by default, so 7680 × 7680), with every coarser level as a mip
+  level. Its top level is uploaded in strips through `idImage::SubImageUpload`.
+- They're drawn unlit with `openrage/rageLand` and `openrage/rageVmtr`
+  (`engine/base/materials/openrage.mtr`). `r_rageMegatextures 0` turns this off, and
+  `r_rageMaterial` still forces one material for everything.
+- RAGE maps have areas but no portals, so every area is drawn.
+- Code: `engine/neo/renderer/RageMegatexture.cpp`, using the `ragejxr` library from
+  [tools/rage-jxr](../tools/rage-jxr/README.md).
+
+This is a stopgap until megatextures stream (see
+[research/engine/megatexture-streaming.md](research/engine/megatexture-streaming.md)): one level
+of a whole map is blurry up close, and `_vmtr` gives each model material only a few dozen texels.
+
 ### Not done yet
 
-- **Textures.** Surfaces use RAGE's material names, which don't exist as engine materials yet, so
-  they draw with the default texture. `r_rageMaterial <material>` draws everything with one
-  material instead.
+- **Full-detail textures and lighting.** Surfaces draw unlit from one decoded level of each
+  megatexture (see [Megatextures](#megatextures)), which is blurry up close. Translucent materials
+  (`transmap`) and materials outside the megatextures still draw with the default texture.
 - **The rest of the map:** `megamodel_*.bmodel` (movers and doors), `sky.bmodel`, the occlusion
   model, every entity except the player start, and collision (`.bcm`).
 - **Very large maps.** Doom 3 limits coordinates to ±131,072 units. wasteland1 (up to 152,232)

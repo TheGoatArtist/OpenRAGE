@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 // OpenRAGE: RAGE's own archives
 #include "../rage/RageFormats.h"
+#include "RageFileSystem.h"
 #include <mutex>
 
 #if !defined( TYPEINFOPROJECT ) && !defined( DMAP  )
@@ -493,6 +494,43 @@ static idFile* Rage_OpenFile( const char* relativePath )
 	memcpy( ( void* )memFile->GetDataPtr(), data.data(), data.size() );
 	memFile->TakeDataOwnership();
 	return memFile;
+}
+
+/*
+================
+Rage_ReadArchiveFile
+
+For OpenRAGE's own RAGE loaders: any file type, by its built name (see RageFileSystem.h)
+================
+*/
+bool Rage_ReadArchiveFile( const char* name, std::vector<uint8_t>& data )
+{
+	data.clear();
+	if( fs_ragePath.GetString()[0] == '\0' )
+	{
+		return false;
+	}
+
+	std::lock_guard<std::mutex> lock( rageLibraryMutex );
+	if( !Rage_MountArchives() )
+	{
+		return false;
+	}
+
+	const rage::Archive* archive = NULL;
+	const rage::ArchiveEntry* entry = rageLibrary.Find( name, &archive, false );
+	if( entry == NULL )
+	{
+		return false;
+	}
+
+	std::string error;
+	if( !archive->Read( *entry, data, &error ) )
+	{
+		common->Warning( "%s", error.c_str() );
+		return false;
+	}
+	return true;
 }
 
 /*

@@ -282,6 +282,62 @@ idImage::SubImageUpload
 void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int height, const void* pic, nvrhi::ICommandList* commandList, int pixelPitch )
 {
 	assert( x >= 0 && y >= 0 && mipLevel >= 0 && width >= 0 && height >= 0 && mipLevel < opts.numLevels );
+
+	// OpenRAGE: this used to be empty in the NVRHI back end. The caller tracks the texture's
+	// state around its uploads, as the other upload paths here do.
+	if( !texture || commandList == NULL || pic == NULL || width <= 0 || height <= 0 )
+	{
+		return;
+	}
+
+	const int mipWidth = Max( 1, opts.width >> mipLevel );
+	const int mipHeight = Max( 1, opts.height >> mipLevel );
+	if( x + width > mipWidth || y + height > mipHeight )
+	{
+		common->Warning( "SubImageUpload: %d x %d at (%d, %d) is outside mip %d of %s", width, height, x, y, mipLevel, GetName() );
+		return;
+	}
+
+	// pixelPitch is the source's width in pixels when it's wider than the rectangle
+	const int rowPitch = GetRowPitch( opts.format, ( pixelPitch > 0 ) ? pixelPitch : width );
+
+	// A whole mip level is written directly
+	if( x == 0 && y == 0 && width == mipWidth && height == mipHeight )
+	{
+		commandList->writeTexture( texture, z, mipLevel, pic, rowPitch );
+		return;
+	}
+
+	// NVRHI only writes whole subresources, so a rectangle goes through a texture of its own
+	// size and is then copied into place. The command list keeps that texture alive until the
+	// GPU has used it.
+	nvrhi::TextureDesc rectDesc = texture->getDesc();
+	rectDesc.setDimension( nvrhi::TextureDimension::Texture2D )
+	.setWidth( width )
+	.setHeight( height )
+	.setDepth( 1 )
+	.setArraySize( 1 )
+	.setMipLevels( 1 )
+	.setSampleCount( 1 )
+	.setIsRenderTarget( false )
+	.setIsUAV( false )
+	.setInitialState( nvrhi::ResourceStates::Unknown )
+	.setKeepInitialState( false )
+	.setDebugName( "SubImageUpload rectangle" );
+
+	nvrhi::TextureHandle rect = deviceManager->GetDevice()->createTexture( rectDesc );
+	if( !rect )
+	{
+		common->Warning( "SubImageUpload: couldn't make a %d x %d texture for %s", width, height, GetName() );
+		return;
+	}
+
+	commandList->beginTrackingTextureState( rect, nvrhi::AllSubresources, nvrhi::ResourceStates::Common );
+	commandList->writeTexture( rect, 0, 0, pic, rowPitch );
+
+	const nvrhi::TextureSlice dest = nvrhi::TextureSlice().setOrigin( x, y, 0 ).setSize( width, height, 1 ).setMipLevel( mipLevel ).setArraySlice( z );
+	const nvrhi::TextureSlice source = nvrhi::TextureSlice().setOrigin( 0, 0, 0 ).setSize( width, height, 1 );
+	commandList->copyTexture( texture, dest, rect, source );
 }
 
 /*

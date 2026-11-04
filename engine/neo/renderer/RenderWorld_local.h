@@ -233,6 +233,7 @@ public:
 	portalArea_t* 			portalAreas;
 	int						numPortalAreas;
 	int						connectedAreaNum;		// incremented every time a door portal state changes
+	bool					rageMap;				// OpenRAGE: RAGE maps have areas but no portals, so every area is drawn
 
 	idScreenRect* 			areaScreenRect;
 

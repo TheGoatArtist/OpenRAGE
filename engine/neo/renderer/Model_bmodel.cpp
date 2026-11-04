@@ -38,6 +38,9 @@ additional terms in COPYING.txt.
 
 idCVar r_rageMaterial( "r_rageMaterial", "", CVAR_RENDERER, "if set, RAGE geometry is drawn with this material instead of its own" );
 
+// RAGE's megatextures on its surfaces (RageMegatexture.cpp)
+const idMaterial* Rage_MaterialForSurface( const char* rageMaterial, float virtualMapping[4], bool& virtualMapped );
+
 /*
 =================
 idRenderModelStatic::LoadBModel
@@ -104,6 +107,19 @@ bool idRenderModelStatic::LoadBModel( const char* fileName, ID_TIME_T* sourceTim
 				}
 			}
 
+			// The material: forced, then the megatexture its RAGE decl names, then by name
+			float virtualMapping[4] = { 1, 1, 0, 0 };
+			bool virtualMapped = false;
+			const idMaterial* shader = overrideMaterial;
+			if( shader == NULL )
+			{
+				shader = Rage_MaterialForSurface( part.material.c_str(), virtualMapping, virtualMapped );
+			}
+			if( shader == NULL )
+			{
+				shader = declManager->FindMaterial( part.material.c_str() );
+			}
+
 			srfTriangles_t* tri = R_AllocStaticTriSurf();
 			tri->numVerts = numVerts;
 			tri->numIndexes = ( int )part.triangles.size();
@@ -121,7 +137,15 @@ bool idRenderModelStatic::LoadBModel( const char* fileName, ID_TIME_T* sourceTim
 				idDrawVert& out = tri->verts[remap[i]];
 				out.Clear();
 				out.xyz.Set( in.xyz[0], in.xyz[1], in.xyz[2] );
-				out.SetTexCoord( in.st[0], in.st[1] );
+				if( virtualMapped )
+				{
+					// (u, v) lands at (x + u w, y + v h) in _vmtr
+					out.SetTexCoord( virtualMapping[2] + in.st[0] * virtualMapping[0], virtualMapping[3] + in.st[1] * virtualMapping[1] );
+				}
+				else
+				{
+					out.SetTexCoord( in.st[0], in.st[1] );
+				}
 				if( surface.hasNormals )
 				{
 					out.SetNormal( in.normal[0], in.normal[1], in.normal[2] );
@@ -141,7 +165,7 @@ bool idRenderModelStatic::LoadBModel( const char* fileName, ID_TIME_T* sourceTim
 
 			modelSurface_t surf;
 			surf.id = NumSurfaces();
-			surf.shader = ( overrideMaterial != NULL ) ? overrideMaterial : declManager->FindMaterial( part.material.c_str() );
+			surf.shader = shader;
 			surf.geometry = tri;
 			AddSurface( surf );
 		}

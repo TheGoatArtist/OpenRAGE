@@ -658,6 +658,51 @@ void TestEntities()
 
 } // namespace
 
+/*
+===============================================================================
+
+	Material declarations
+
+===============================================================================
+*/
+
+void TestMaterials()
+{
+	rage::MaterialDecl decl;
+	std::string error;
+
+	// A land material: its coordinates are positions in the named page file
+	const char* land =
+		"{\n"
+		"\tlandPageFile\t\"dusty8\"\n"
+		"\tlandDimensions\t{ 1.000000, 2.000000 }\n"
+		"\tdiffusemap\t\"maps/game/tracks/dusty8/mega.tga\"\n"
+		"}\n";
+	CHECK( rage::ParseMaterialDecl( land, strlen( land ), decl, &error ) );
+	CHECK( decl.landPageFile == "dusty8" && !decl.hasVirtualMapping && !decl.hasTransMap );
+
+	// A model material in the shared megatexture; keys in mixed case, a comment, another tuple
+	const char* model =
+		"// a comment\n"
+		"{\n"
+		"\tpagetablemap\t_vmtrpagetable\n"
+		"\tvirtualtexturefeedbackfloat\t{ 1.000000, 512.000000, 0.000000, 0.000000 }\n"
+		"\tvirtualMapping\t{ 0.007813, 0.003906, 0.125000, 0.421875 }\n"
+		"\ttransmap\t\"models/test/fence_trans.tga\"\n"
+		"}\n";
+	CHECK( rage::ParseMaterialDecl( model, strlen( model ), decl, &error ) );
+	CHECK( decl.pageTableMap == "_vmtrpagetable" && decl.landPageFile.empty() );
+	CHECK( decl.hasVirtualMapping && decl.virtualMapping[0] > 0.0078f && decl.virtualMapping[0] < 0.0079f
+		   && decl.virtualMapping[2] == 0.125f && decl.virtualMapping[3] == 0.421875f );
+	CHECK( decl.hasTransMap );
+
+	// A tuple with the wrong count, and text with no block
+	const char* bad = "{\n\tvirtualmapping\t{ 0.5, 0.5 }\n}\n";
+	CHECK( !rage::ParseMaterialDecl( bad, strlen( bad ), decl, &error ) && !error.empty() );
+	const char* none = "pagetablemap _vmtrpagetable";
+	CHECK( !rage::ParseMaterialDecl( none, strlen( none ), decl, &error ) );
+}
+
 int main( int argc, char** argv )
 {
 	const std::string folder = ( argc > 1 ) ? argv[1] : ".";
@@ -666,6 +711,7 @@ int main( int argc, char** argv )
 	TestArchives( folder );
 	TestBModel();
 	TestEntities();
+	TestMaterials();
 
 	printf( "rage_selftest: %d checks, %d failed\n", checks, failures );
 	return failures == 0 ? 0 : 1;

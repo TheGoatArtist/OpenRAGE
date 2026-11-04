@@ -1,0 +1,27 @@
+/*
+	OpenRAGE: materials for RAGE's megatextures on RAGE geometry.
+
+	Their images are made in memory when a RAGE map loads, decoded from the player's own RAGE
+	install (engine/neo/renderer/RageMegatexture.cpp). Nothing from RAGE is stored here. They're
+	drawn unlit for now: RAGE's megatextures already carry much of each map's lighting.
+*/
+
+// A map's own megatexture (land materials)
+openrage/rageLand
+{
+	noShadows
+	{
+		blend	gl_one, gl_zero
+		map		_rageLand
+	}
+}
+
+// The shared model megatexture, virtualtextures/_vmtr.pages
+openrage/rageVmtr
+{
+	noShadows
+	{
+		blend	gl_one, gl_zero
+		map		_rageVmtr
+	}
+}

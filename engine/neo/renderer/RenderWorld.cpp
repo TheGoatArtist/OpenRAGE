@@ -152,6 +152,7 @@ idRenderWorldLocal::idRenderWorldLocal()
 
 	portalAreas = NULL;
 	numPortalAreas = 0;
+	rageMap = false;	// OpenRAGE
 
 	doublePortals = NULL;
 	numInterAreaPortals = 0;

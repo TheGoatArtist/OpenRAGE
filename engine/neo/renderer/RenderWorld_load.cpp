@@ -33,6 +33,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "RenderCommon.h"
 #include "Model_local.h"	// OpenRAGE: RAGE map areas are idRenderModelStatic
 
+// OpenRAGE: a RAGE map's megatextures (RageMegatexture.cpp)
+void Rage_BeginMapMegatextures();
+
 
 /*
 ================
@@ -742,6 +745,7 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		FreeWorld();
 		mapName.Clear();
 		ClearWorld();
+		rageMap = false;	// OpenRAGE
 		return true;
 	}
 
@@ -783,6 +787,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 			}
 		}
 	}
+
+	rageMap = isRageMap;	// OpenRAGE: no portal culling (see FlowViewThroughPortals)
 
 	// if we are reloading the same map, check the timestamp
 	// and try to skip all the work
@@ -971,6 +977,8 @@ bool idRenderWorldLocal::InitFromMap( const char* name )
 		// OpenRAGE: build each area's model from its own .bmodel
 		if( isRageMap )
 		{
+			Rage_BeginMapMegatextures();
+
 			int numSurfaces = 0;
 			int numVerts = 0;
 			int numIndexes = 0;

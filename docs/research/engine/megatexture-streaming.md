@@ -46,7 +46,7 @@ From the format research in [megatexture-pages.md](../formats/megatexture-pages.
 | RGB ↔ YCoCg | `idColorSpace::ConvertRGBToCoCg_Y` and `ConvertCoCg_YToRGB` | `renderer/Color/ColorSpace.cpp` |
 | Worker threads | `idParallelJobList`: job lists with priorities and sync points. Its "max threads" mode is documented as helping "if there is IO to overlap" | `idlib/ParallelJobList.h` |
 | Separate copy and compute queues | NVRHI supports both and both device managers can create them, but `enableCopyQueue` and `enableComputeQueue` default to false and nothing turns them on, so all uploads and compute go through the graphics queue | `sys/DeviceManager.h`, `sys/DeviceManager_VK.cpp`, `sys/DeviceManager_DX12.cpp` |
-| Writing a page into part of a large texture | NVRHI staging textures (`createStagingTexture`, `mapStagingTexture`) and `copyTexture` between texture slices. `writeTexture` only writes whole mip levels | `extern/nvrhi/include/nvrhi/nvrhi.h` |
+| Writing a page into part of a large texture | NVRHI staging textures (`createStagingTexture`, `mapStagingTexture`) and `copyTexture` between texture slices. `writeTexture` only writes whole mip levels. Since 2026-11-04 the engine's own `idImage::SubImageUpload` does it | `extern/nvrhi/include/nvrhi/nvrhi.h`, `renderer/NVRHI/Image_NVRHI.cpp` |
 | Hardware virtual texturing | NVRHI's tiled (sparse) textures (`TextureDesc::isTiled`, `getTextureTiling`, `updateTextureTileMappings`), implemented for D3D11, D3D12 and Vulkan. Sampler feedback textures exist in the D3D12 back end only. The engine uses neither | `extern/nvrhi/` |
 
 **The cache formats line up.** `ConvertRGBToCoCg_Y` writes (Co + 128, Cg + 128, 0, Y), the same
@@ -63,18 +63,27 @@ megatexture code is in the engine.
 
 ### What's missing
 
-None of these exist in `engine/` yet:
+Done since this survey (2026-11-04):
 
-- **Partial texture uploads.** `idImage::SubImageUpload` is an empty stub in the NVRHI back end
-  (`renderer/NVRHI/Image_NVRHI.cpp`).
-- **Streaming of any kind.** Images load whole, in batches (`idImageManager::LoadDeferredImages`).
-- **Decoding pages for rendering.** The `ragejxr` library from
-  [tools/rage-jxr](../../../tools/rage-jxr/README.md) is linked into the engine, but only the
-  [megatexture viewer](../../engine.md#megatexture-viewer) uses it, to decode whole regions for
-  display in its window.
+- **Partial texture uploads.** `idImage::SubImageUpload` was an empty stub in the NVRHI back end
+  (`renderer/NVRHI/Image_NVRHI.cpp`). It now writes whole mip levels directly and copies a
+  rectangle into place through a temporary texture.
+- **Decoding pages for rendering, as a stopgap.** When a RAGE map loads, its land megatexture and
+  `_vmtr.pages` are each decoded once, at the most detailed level that fits in
+  `r_rageMegatextureSize`, with the coarser levels as mip levels
+  (`renderer/RageMegatexture.cpp`). Surfaces sample them directly. It's blurry up close and costs
+  the whole level's memory, but it puts RAGE's own textures on its geometry. See
+  [Loading RAGE geometry](../../engine.md#loading-rage-geometry).
+
+Still missing:
+
+- **Streaming of any kind.** Images load whole, in batches (`idImageManager::LoadDeferredImages`),
+  and the megatextures above are decoded once at map load.
 - **Virtual texturing itself:** a feedback pass that records which pages a frame needs, a page
   table (indirection texture) and the shader code that looks pages up in it, physical cache
   textures with an allocator, and a page reader that uses `.pageLines`.
+- **The other layers and the mask.** Only the diffuse layer is decoded. Translucent materials
+  need the pages' 1-bit mask, and lighting needs the normal, specular and power layers.
 
 ### A possible pipeline (proposal)
 

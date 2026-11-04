@@ -773,9 +773,10 @@ void idRenderWorldLocal::FindViewLightsAndEntities()
 	}
 
 	// find the area to start the portal flooding in
-	if( !r_usePortals.GetBool() )
+	if( !r_usePortals.GetBool() || rageMap )
 	{
 		// debug tool to force no portal culling
+		// OpenRAGE: also for RAGE maps, whose areas only divide space and have no portals
 		tr.viewDef->areaNum = -1;
 	}
 	else
