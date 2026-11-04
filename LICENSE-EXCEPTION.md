@@ -1,7 +1,8 @@
 # Additional permission under GNU GPL version 3 section 7
 
 OpenRAGE is licensed under the GNU General Public License, version 3 or (at your option) any
-later version (see [LICENSE](LICENSE)). The copyright holders grant this additional permission:
+later version, with id Software's additional terms, the same as Doom 3 BFG Edition (see
+[COPYING.txt](COPYING.txt)). The copyright holders grant this additional permission:
 
 If you modify this Program, or any covered work, by linking or combining it with a proprietary
 software development kit or runtime library that a hardware vendor or platform holder supplies

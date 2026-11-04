@@ -19,9 +19,10 @@ A small OpenRAGE program that opens the user's own RAGE install and shows real g
 the first piece of phase 2, and it starts the engine's structure without needing any gameplay.
 Each step is small, works on Windows and Linux, and ends with something visible.
 
-1. **Decide the basics.** License (written from scratch, or starting from Doom 3 BFG under
-   GPL-3.0), language and build system, and dependencies. Suggested: C++20, CMake, SDL3,
-   Vulkan with volk and VMA, and Dear ImGui.
+1. **Decide the basics.** ~~License (written from scratch, or starting from Doom 3 BFG under
+   GPL-3.0), language and build system, and dependencies.~~ Decided: the engine starts from
+   RBDOOM-3-BFG (C++, CMake, SDL, Vulkan and DirectX 12 through NVRHI, Dear ImGui) under Doom 3
+   BFG's license. See [engine.md](engine.md).
 2. **A window.** SDL3 opens a window and Vulkan clears it every frame. This proves the toolchain
    on both platforms. Optionally, GitHub Actions builds it on every push.
 3. **Archive browser.** Port the `.resources` reader from [tools/resources.py](../tools/resources.py)
@@ -32,7 +33,8 @@ Each step is small, works on Windows and Linux, and ends with something visible.
    each level, their sizes, and where `.pageLines` is stale. Uses
    [research/formats/megatexture-pages.md](research/formats/megatexture-pages.md).
 6. **Megatexture pixels.** Once the page codec is decoded, show the real terrain. Streaming and
-   caching grow from here.
+   caching grow from here. First version: the engine's
+   [megatexture viewer](engine.md#megatexture-viewer) decodes and shows any region of a level.
 
 Steps 2–5 don't wait on unsolved research. Step 6 needs the page codec, which can be researched
 in parallel.
@@ -56,5 +58,6 @@ piece from the start:
 
 - What is the first concrete milestone? A viewer is proposed above.
 - How will the code be structured (engine, tools, launcher)?
-- Which language and build system? C++ with CMake is the usual choice for projects like this.
-- ~~Which license?~~ GPL-3.0-or-later with an SDK exception. See [legal.md](legal.md#license).
+- ~~Which language and build system?~~ C++ and CMake, from RBDOOM-3-BFG. See [engine.md](engine.md).
+- ~~Which license?~~ GPLv3 with id Software's additional terms, the same as Doom 3 BFG, plus an
+  SDK exception for OpenRAGE's own code. See [legal.md](legal.md#license).

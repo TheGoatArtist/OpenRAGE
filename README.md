@@ -12,9 +12,12 @@ OpenRAGE is **not a remake**. The original game stays at the center of everythin
 
 ## Status
 
-**Pre-implementation.** The project is in the research and planning stage. No engine code
-exists yet. Everything under [docs/](docs/) describes ideas and possible phases. None of it is
-a committed roadmap.
+**Early engine work.** The file-format research is under [docs/research/](docs/research/). The
+engine lives in [engine/](engine/): it's built from [RBDOOM-3-BFG](https://github.com/RobertBeckebans/RBDOOM-3-BFG),
+which is based on id Software's Doom 3 BFG Edition source code. It starts as OpenRAGE and can load
+a RAGE map's world geometry from your own install, without textures yet. It doesn't run RAGE's
+game yet. See [docs/engine.md](docs/engine.md) for how to build it and what's being worked on.
+The phases under [docs/](docs/) are ideas, not a committed roadmap.
 
 ## Core philosophy
 
@@ -56,10 +59,26 @@ OpenRAGE is an unofficial fan project. It is not affiliated with or endorsed by 
 Bethesda Softworks, ZeniMax Media or Microsoft. RAGE and id Tech are trademarks of their
 respective owners.
 
+## Credits
+
+OpenRAGE is built on other people's work, and they're credited alongside each other:
+
+- **id Software** for the Doom 3 BFG Edition GPL source code.
+- **Robert Beckebans and the RBDOOM-3-BFG contributors** for RBDOOM-3-BFG, the engine OpenRAGE is
+  built from.
+
+See [CREDITS.md](CREDITS.md) for the full list.
+
 ## License
 
-OpenRAGE is free software under the [GNU General Public License v3.0 or later](LICENSE), with an
-[additional permission](LICENSE-EXCEPTION.md) that allows combining it with proprietary vendor
-SDKs such as DLSS, XeSS and Steamworks. This covers everything in this repository, documentation
-included. It doesn't cover RAGE itself: the game's files stay the property of their owners and are
-never included. See [docs/legal.md](docs/legal.md).
+OpenRAGE uses the same license as Doom 3 BFG Edition: the **GNU General Public License v3** with
+**id Software's additional terms**. [COPYING.txt](COPYING.txt) is byte-for-byte the license file id
+Software shipped with the Doom 3 BFG Edition source code. Third-party code in the engine that isn't
+covered by the GPL is listed in [engine/LICENSE_EXCEPTIONS.md](engine/LICENSE_EXCEPTIONS.md).
+
+[LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md) adds a permission for proprietary vendor SDKs such as
+DLSS, XeSS and Steamworks. It only covers code the OpenRAGE contributors wrote, not code from Doom 3
+BFG or RBDOOM-3-BFG.
+
+None of this covers RAGE itself: the game's files stay the property of their owners and are never
+included. See [docs/legal.md](docs/legal.md).

@@ -28,8 +28,11 @@ New here? Start with [docs/getting-started.md](docs/getting-started.md) to set u
    you found it, so others can check the work.
 5. **Respect the original.** Changes should serve RAGE's identity, not replace it.
 6. **Your contributions use the project's license.** By contributing, you agree to license your
-   work under GPL-3.0-or-later with the project's SDK exception. See
+   work under the GPL with id Software's additional terms ([COPYING.txt](COPYING.txt), the same
+   license as Doom 3 BFG Edition), plus the project's SDK exception for your own code. See
    [docs/legal.md](docs/legal.md#license).
+7. **Keep the credits.** Never remove id Software's or the RBDOOM-3-BFG developers' copyright
+   notices from source files, and keep [CREDITS.md](CREDITS.md) up to date.
 
 ## Workflow
 

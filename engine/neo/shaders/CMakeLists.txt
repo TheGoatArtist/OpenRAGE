@@ -1,0 +1,50 @@
+include(../compileshaders.cmake)
+
+file(GLOB globalshaders "BRDF.inc.hlsl" "global_inc.hlsl" "vulkan.hlsli" "renderParmSet0.inc.hlsl" "renderParmSet1.inc.hlsl" "renderParmSet2.inc.hlsl" "renderParmSet3.inc.hlsl" "renderParmSet4.inc.hlsl" "renderParmSet5.inc.hlsl" "renderParmSet6.inc.hlsl" "renderParmSet7.inc.hlsl" "renderParmSet8.inc.hlsl" "renderParmSet9.inc.hlsl" "renderParmSet10.inc.hlsl" "renderParmSet11.inc.hlsl" "renderParmSet12.inc.hlsl" "renderParmSet13.inc.hlsl" "renderParmSet14.inc.hlsl")
+file(GLOB builtins "builtin/*.hlsl")
+file(GLOB debug "builtin/debug/*hlsl")
+file(GLOB fog "builtin/fog/*hlsl")
+file(GLOB legacy "builtin/legacy/*hlsl")
+file(GLOB lighting "builtin/lighting/*hlsl")
+file(GLOB post "builtin/post/*hlsl")
+file(GLOB ssao "builtin/SSAO/*hlsl")
+file(GLOB ssgi "builtin/SSGI/*hlsl")
+file(GLOB video "builtin/video/*hlsl")
+file(GLOB vr "builtin/VR/*hlsl")
+file(GLOB usershaders "*.hlsl")
+
+list(REMOVE_ITEM usershaders ${globalshaders})
+
+set(shaders ${globalshaders} ${builtins} ${debug} ${fog} ${legacy} ${lighting} ${post} ${ssao} ${ssgi} ${video} ${vr} ${usershaders})
+
+source_group("builtin" FILES ${builtins})
+source_group("builtin/debug" FILES ${debug})
+source_group("builtin/fog" FILES ${fog})
+source_group("builtin/legacy" FILES ${legacy})
+source_group("builtin/lighting" FILES ${lighting})
+source_group("builtin/post" FILES ${post})
+source_group("builtin/SSAO" FILES ${ssao})
+source_group("builtin/SSGI" FILES ${ssgi})
+source_group("builtin/video" FILES ${video})
+source_group("builtin/VR" FILES ${vr})
+source_group("global" FILES ${globalshaders})
+
+source_group("user" FILES ${usershaders})
+
+if(STANDALONE)
+    compile_shaders_all_platforms(
+        TARGET Shaders
+        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/shaders.cfg
+        OUTPUT_BASE ${CMAKE_CURRENT_SOURCE_DIR}/../../content/renderprogs2
+        SHADER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+        SOURCES ${shaders}
+    )
+else()
+    compile_shaders_all_platforms(
+        TARGET Shaders
+        CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/shaders.cfg
+        OUTPUT_BASE ${CMAKE_CURRENT_SOURCE_DIR}/../../base/renderprogs2 # This path scheme is a bit odd.
+        SHADER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+        SOURCES ${shaders}
+    )
+endif()
